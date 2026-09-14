@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="HybridLab.API/HybridLab.API.csproj" />
+  <Project Path="HybridLab.Application/HybridLab.Application.csproj" />
+  <Project Path="HybridLab.Domain/HybridLab.Domain.csproj" />
+  <Project Path="HybridLab.Infrastructure/HybridLab.Infrastructure.csproj" />
+</Solution>
