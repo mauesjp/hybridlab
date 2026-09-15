@@ -13,4 +13,5 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<StudentProfile> Students { get; set; } = null!;
     public DbSet<CoachProfile> Coaches { get; set; } = null!;
+    public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
 }
