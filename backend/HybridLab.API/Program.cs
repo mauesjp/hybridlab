@@ -1,7 +1,9 @@
+using HybridLab.API.Controllers;
 using HybridLab.Infrastructure.Identity;
 using HybridLab.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +14,7 @@ builder.Services
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
 
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -22,6 +25,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
     string[] roles = { "Student", "Coach" };
 
@@ -32,6 +36,28 @@ using (var scope = app.Services.CreateScope())
             await roleManager.CreateAsync(new IdentityRole(role));
         }
     }
+
+    var testUserName = "teststudent";
+    var testUser = await userManager.FindByNameAsync(testUserName);
+
+    if(testUser == null)
+    {
+        testUser = new ApplicationUser
+        {
+            UserName = "teststudent",
+            Email = "teststudent@hybridlab.local",
+            EmailConfirmed = true
+        };
+        var result = await userManager.CreateAsync(testUser, "Test@123456");
+
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(testUser, "Student");
+        }
+    }
+
+
+    await userManager.AddToRoleAsync(testUser, "Student");
 }
 
 if (app.Environment.IsDevelopment())
@@ -42,4 +68,5 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.MapControllers();
 app.Run();
