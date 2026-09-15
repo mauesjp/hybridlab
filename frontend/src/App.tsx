@@ -1,13 +1,15 @@
 import './App.css'
+import LoginPage from './pages/LoginPage'
+import DashboardPage from './pages/DashboardPage'
 
 function App() {
-    return (
-        <>
-            <h1> HybridLab</h1>
-            <p>Frontend Funcionando</p>
-            <h1 className="text-4xl font-bold">HybridLab</h1>
-        </>
-    )
+    const accessToken = localStorage.getItem('accessToken')
+
+    if(accessToken) {
+        return <DashboardPage />
+    }
+
+    return <LoginPage />
 }
 
 export default App
