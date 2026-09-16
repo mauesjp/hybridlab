@@ -1,4 +1,5 @@
 using HybridLab.Application.Interfaces;
+using HybridLab.Domain.Entities;
 using HybridLab.Infrastructure.Identity;
 using HybridLab.Infrastructure.Persistence;
 using HybridLab.Infrastructure.Services;
@@ -82,6 +83,7 @@ using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
     string[] roles = { "Student", "Coach" };
 
@@ -93,25 +95,78 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    var testUserName = "teststudent";
-    var testUser = await userManager.FindByNameAsync(testUserName);
+    var testStudent = await userManager.FindByNameAsync("teststudent");
 
-    if (testUser == null)
+    if (testStudent == null)
     {
-        testUser = new ApplicationUser
+        testStudent = new ApplicationUser
         {
             UserName = "teststudent",
             Email = "teststudent@hybridlab.local",
             EmailConfirmed = true
         };
-        var result = await userManager.CreateAsync(testUser, "Test@123456");
+        var result = await userManager.CreateAsync(testStudent, "Test@123456");
 
         if (result.Succeeded)
         {
-            await userManager.AddToRoleAsync(testUser, "Student");
+            await userManager.AddToRoleAsync(testStudent, "Student");
         }
     }
 
+    var studentProfile = await dbContext.Students.FirstOrDefaultAsync(s => s.UserId == testStudent.Id);
+
+    if(studentProfile == null)
+    {
+        studentProfile = new StudentProfile
+        {
+            BirthDate = new DateTime ( 2000, 1, 1),
+            CreatedAt = DateTime.UtcNow,
+            DisplayName = "Aluno Teste",
+            UserId = testStudent.Id
+        };
+
+        dbContext.Students.Add(studentProfile);
+    }
+
+    var testCoach = await userManager.FindByNameAsync("testcoach");
+
+    if(testCoach == null)
+    {
+        testCoach = new ApplicationUser
+        {
+            UserName = "testcoach",
+            Email = "testcoach@hybridlab.local",
+            EmailConfirmed = true
+        };
+
+        var result = await userManager.CreateAsync(testCoach, "Test@123456");
+
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(testCoach, "Coach");
+        }
+    }
+
+    var coachProfile = await dbContext.Coaches.FirstOrDefaultAsync(c => c.UserId == testCoach.Id);
+
+    if(coachProfile == null)
+    {
+        coachProfile = new CoachProfile
+        {
+            UserId = testCoach.Id,
+            DisplayName = "Professor Teste",
+            CoachCode = "COACH001",
+            CanCoachStrength = true,
+            CanCoachRunning = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        dbContext.Coaches.Add(coachProfile);
+    }
+
+    await dbContext.SaveChangesAsync();
+
+}
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
@@ -127,4 +182,3 @@ using (var scope = app.Services.CreateScope())
 
     app.MapControllers();
     app.Run();
-}
