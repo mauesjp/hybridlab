@@ -15,4 +15,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CoachProfile> Coaches { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
     public DbSet<CoachStudentLink> CoachStudentLinks { get; set; } = null!;
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        builder.Entity<CoachProfile>()
+            .HasIndex(coach => coach.CoachCode)
+            .IsUnique();
+    }
 }
