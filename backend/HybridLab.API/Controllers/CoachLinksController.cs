@@ -64,7 +64,6 @@ namespace HybridLab.API.Controllers
             var existingLink = await _context.CoachStudentLinks
                 .FirstOrDefaultAsync(link =>
                     link.StudentId == student.Id &&
-                    link.CoachId == coach.Id &&
                     link.Modality == dto.Modality &&
                     (link.Status == LinkStatus.Pending || link.Status == LinkStatus.Accepted)
                 );
@@ -154,6 +153,21 @@ namespace HybridLab.API.Controllers
             if (link.Status != LinkStatus.Pending)
             {
                 return BadRequest("Esta solicitação já foi respondida.");
+            }
+
+            if (dto.Accept)
+            {
+                var alreadyHasCoach = await _context.CoachStudentLinks
+                    .AnyAsync(existing =>
+                    existing.Id != link.Id &&
+                    existing.StudentId == link.StudentId &&
+                    existing.Modality == link.Modality &&
+                    existing.Status == LinkStatus.Accepted);
+
+                if (alreadyHasCoach)
+                {
+                    return BadRequest("O aluno já possui um professor ativo nesta modalidade.");
+                }
             }
 
             link.Status = dto.Accept ? LinkStatus.Accepted : LinkStatus.Rejected;
