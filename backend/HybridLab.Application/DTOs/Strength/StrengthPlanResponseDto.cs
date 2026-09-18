@@ -1,14 +1,13 @@
-﻿namespace HybridLab.Domain.Entities
+﻿namespace HybridLab.Application.DTOs.Strength
 {
-    public class StrengthPlan
+    public class StrengthPlanResponseDto
     {
         public int Id { get; set; }
         public int StudentId { get; set; }
         public string Name { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
         public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
         public int VersionNumber { get; set; }
-        public int? PreviousVersionId { get; set; }
         public bool IsPublished { get; set; }
         public DateTime? PublishedAt { get; set; }
     }
