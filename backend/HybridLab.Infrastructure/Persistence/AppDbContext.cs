@@ -18,10 +18,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<StrengthPlan> StrengthPlans { get; set; } = null!;
     public DbSet<StrengthWorkoutDay> StrengthWorkoutDays { get; set; } = null!;
     public DbSet<PlannedExercise> PlannedExercises { get; set; } = null!;
+    public DbSet<WorkoutSession> WorkoutSessions { get; set; } = null!;
+    public DbSet<WorkoutExercise> WorkoutExercises { get; set; } = null!;
+    public DbSet<WorkoutSet> WorkoutSets { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<WorkoutSet>()
+            .Property(set => set.Weight)
+            .HasPrecision(8, 2);
+
+        builder.Entity<WorkoutSet>()
+            .Property(set => set.Rpe)
+            .HasPrecision(3, 1);
 
         builder.Entity<CoachProfile>()
             .HasIndex(coach => coach.CoachCode)
