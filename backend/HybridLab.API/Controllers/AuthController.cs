@@ -1,4 +1,5 @@
 ﻿using HybridLab.Application.DTOs;
+using HybridLab.Application.DTOs.Auth;
 using HybridLab.Application.Interfaces;
 using HybridLab.Domain.Entities;
 using HybridLab.Infrastructure.Identity;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Security.Cryptography;
 
 namespace HybridLab.API.Controllers
@@ -18,12 +20,14 @@ namespace HybridLab.API.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ITokenService _tokenService;
         private readonly AppDbContext _context;
+        private readonly ICoachCodeGenerator _coachCodeGenerator;
 
-        public AuthController(UserManager<ApplicationUser> userManager, ITokenService tokenService, AppDbContext context)
+        public AuthController(UserManager<ApplicationUser> userManager, ITokenService tokenService, AppDbContext context, ICoachCodeGenerator coachCodeGenerator)
         {
             _userManager = userManager;
             _tokenService = tokenService;
             _context = context;
+            _coachCodeGenerator = coachCodeGenerator;
         }
 
         [HttpPost("login")]
@@ -135,11 +139,191 @@ namespace HybridLab.API.Controllers
             });
         }
 
+        [HttpPost("register")]
+        [AllowAnonymous]
+        public async Task<ActionResult> Register(RegisterDto dto)
+        {
+            var accountType = dto.AccountType.Trim();
+
+            if (accountType != "Student" && accountType != "Coach")
+            {
+                return BadRequest("O tipo de conta deve ser Student ou Coach.");
+            }
+
+            if (accountType == "Student" && dto.BirthDate == null)
+            {
+                return BadRequest("A data de nascimento é obrigatória para alunos.");
+            }
+
+            if (accountType == "Coach" &&
+                !dto.CanCoachStrength &&
+                !dto.CanCoachRunning)
+            {
+                return BadRequest(
+                    "O treinador deve atuar em pelo menos uma modalidade."
+                );
+            }
+
+            var existingUsername = await _userManager
+                .FindByNameAsync(dto.Username);
+
+            if (existingUsername != null)
+            {
+                return Conflict("Este nome de usuário já está em uso.");
+            }
+
+            var existingEmail = await _userManager
+                .FindByEmailAsync(dto.Email);
+
+            if (existingEmail != null)
+            {
+                return Conflict("Este e-mail já está cadastrado.");
+            }
+
+            var user = new ApplicationUser
+            {
+                UserName = dto.Username.Trim(),
+                Email = dto.Email.Trim()
+            };
+
+            var result = await _userManager.CreateAsync(
+                user,
+                dto.Password
+            );
+
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors
+                    .Select(error => error.Description)
+                    .ToList();
+
+                return BadRequest(new
+                {
+                    Message = "Não foi possível criar a conta.",
+                    Errors = errors
+                });
+            }
+
+            var roleResult = await _userManager
+                .AddToRoleAsync(user, accountType);
+
+            if (!roleResult.Succeeded)
+            {
+                await _userManager.DeleteAsync(user);
+
+                return BadRequest(
+                    "Não foi possível definir o tipo da conta."
+                );
+            }
+
+            if (accountType == "Student")
+            {
+                var student = new StudentProfile
+                {
+                    UserId = user.Id,
+                    DisplayName = dto.DisplayName.Trim(),
+                    BirthDate = dto.BirthDate!.Value,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Students.Add(student);
+            }
+
+            if (accountType == "Coach")
+            {
+                var coach = new CoachProfile
+                {
+                    UserId = user.Id,
+                    DisplayName = dto.DisplayName.Trim(),
+                    CoachCode = await _coachCodeGenerator.GenerateAsync(),
+                    CanCoachStrength = dto.CanCoachStrength,
+                    CanCoachRunning = dto.CanCoachRunning,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Coaches.Add(coach);
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                await _userManager.DeleteAsync(user);
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    "Não foi possível concluir a criação da conta."
+                );
+            }
+
+            return StatusCode(
+                StatusCodes.Status201Created,
+                new
+                {
+                    Message = "Conta criada com sucesso.",
+                    AccountType = accountType
+                }
+            );
+        }
+
         [Authorize]
         [HttpGet("me")]
-        public IActionResult Me()
+        public async Task<ActionResult> Me()
         {
-            return Ok("Authenticated");
+            var userId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? string.Empty;
+
+            string displayName = user.UserName ?? string.Empty;
+
+            if (role == "Student")
+            {
+                var student = await _context.Students
+                    .FirstOrDefaultAsync(student => student.UserId == user.Id);
+
+                if (student != null)
+                {
+                    displayName = student.DisplayName;
+                }
+            }
+
+            if (role == "Coach")
+            {
+                var coach = await _context.Coaches
+                    .FirstOrDefaultAsync(coach => coach.UserId == user.Id);
+
+                if (coach != null)
+                {
+                    displayName = coach.DisplayName;
+                }
+            }
+
+            return Ok(new
+            {
+                userId = user.Id,
+                username = user.UserName,
+                email = user.Email,
+                displayName,
+                role
+            });
         }
+        
     }
 }

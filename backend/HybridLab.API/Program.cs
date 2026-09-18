@@ -21,6 +21,7 @@ builder.Services
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ICoachCodeGenerator, CoachCodeGenerator>();
+builder.Services.AddScoped<IPlanningAccessService, PlanningAccessService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -74,7 +75,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins("http://localhost:5174", "http://127.0.0.1:5174").AllowAnyHeader().AllowAnyMethod();
     });
 });
 
