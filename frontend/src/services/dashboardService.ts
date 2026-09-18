@@ -1,0 +1,29 @@
+import { api } from './api'
+import type { ActiveSession, CoachLink, DashboardData, DayInput, ExerciseInput, Modality, PlanDetails, PlanSummary, PlanningAccess, SessionDetails, SetInput, WorkoutDay, PlannedExercise, WorkoutSet } from '../types/dashboard'
+
+export const dashboardService = {
+  me: () => api<string>('/Auth/me'),
+  dashboard: () => api<DashboardData>('/Dashboard'),
+  access: (modality: Modality) => api<PlanningAccess>(`/PlanningAccess/${modality}`),
+  pending: () => api<CoachLink[]>('/CoachLinks/pending'),
+  requestLink: (coachCode: string, modality: Modality) => api('/CoachLinks/request', 'POST', { coachCode, modality }),
+  respondLink: (id: number, accept: boolean) => api(`/CoachLinks/${id}/respond`, 'PUT', { accept }),
+  unlink: (id: number) => api(`/CoachLinks/${id}/unlink`, 'PUT'),
+  plan: (id: number) => api<PlanSummary>(`/StrengthPlans/${id}`),
+  fullPlan: (id: number) => api<PlanDetails>(`/StrengthPlans/${id}/full`),
+  versions: (id: number) => api<PlanSummary[]>(`/StrengthPlans/${id}/versions`),
+  createPlan: (name: string, studentId?: number) => api<PlanSummary>(studentId === undefined ? '/StrengthPlans' : `/StrengthPlans/students/${studentId}`, 'POST', { name }),
+  publish: (id: number) => api(`/StrengthPlans/${id}/publish`, 'PUT'),
+  newVersion: (id: number) => api<PlanSummary>(`/StrengthPlans/${id}/new-version`, 'POST'),
+  addDay: (planId: number, body: DayInput) => api<WorkoutDay>(`/StrengthPlans/${planId}/days`, 'POST', body),
+  updateDay: (id: number, body: DayInput) => api<WorkoutDay>(`/StrengthPlans/days/${id}`, 'PUT', body),
+  deleteDay: (id: number) => api(`/StrengthPlans/days/${id}`, 'DELETE'),
+  addExercise: (dayId: number, body: ExerciseInput) => api<PlannedExercise>(`/StrengthPlans/days/${dayId}/exercises`, 'POST', body),
+  updateExercise: (id: number, body: ExerciseInput) => api<PlannedExercise>(`/StrengthPlans/exercises/${id}`, 'PUT', body),
+  deleteExercise: (id: number) => api(`/StrengthPlans/exercises/${id}`, 'DELETE'),
+  activeSession: () => api<ActiveSession>('/WorkoutSessions/active'),
+  session: (id: number) => api<SessionDetails>(`/WorkoutSessions/${id}`),
+  start: (dayId: number) => api<{ id: number }>(`/WorkoutSessions/days/${dayId}/start`, 'POST'),
+  addSet: (id: number, body: SetInput) => api<WorkoutSet>(`/WorkoutSessions/exercises/${id}/sets`, 'POST', body),
+  finish: (id: number) => api(`/WorkoutSessions/${id}/finish`, 'PUT'),
+}
