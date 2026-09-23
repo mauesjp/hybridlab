@@ -25,5 +25,7 @@ export const dashboardService = {
   session: (id: number) => api<SessionDetails>(`/WorkoutSessions/${id}`),
   start: (dayId: number) => api<{ id: number }>(`/WorkoutSessions/days/${dayId}/start`, 'POST'),
   addSet: (id: number, body: SetInput) => api<WorkoutSet>(`/WorkoutSessions/exercises/${id}/sets`, 'POST', body),
+  updateSet: (id: number, body: SetInput) => api<WorkoutSet>(`/WorkoutSessions/sets/${id}`, 'PUT', body),
+  deleteSet: (id: number) => api(`/WorkoutSessions/sets/${id}`, 'DELETE'),
   finish: (id: number) => api(`/WorkoutSessions/${id}/finish`, 'PUT'),
 }

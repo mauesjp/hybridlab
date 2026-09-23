@@ -75,7 +75,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5174", "http://127.0.0.1:5174").AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173").AllowAnyHeader().AllowAnyMethod();
     });
 });
 
@@ -117,11 +117,11 @@ using (var scope = app.Services.CreateScope())
 
     var studentProfile = await dbContext.Students.FirstOrDefaultAsync(s => s.UserId == testStudent.Id);
 
-    if(studentProfile == null)
+    if (studentProfile == null)
     {
         studentProfile = new StudentProfile
         {
-            BirthDate = new DateTime ( 2000, 1, 1),
+            BirthDate = new DateTime(2000, 1, 1),
             CreatedAt = DateTime.UtcNow,
             DisplayName = "Aluno Teste",
             UserId = testStudent.Id
@@ -132,7 +132,7 @@ using (var scope = app.Services.CreateScope())
 
     var testCoach = await userManager.FindByNameAsync("testcoach");
 
-    if(testCoach == null)
+    if (testCoach == null)
     {
         testCoach = new ApplicationUser
         {
@@ -151,7 +151,7 @@ using (var scope = app.Services.CreateScope())
 
     var coachProfile = await dbContext.Coaches.FirstOrDefaultAsync(c => c.UserId == testCoach.Id);
 
-    if(coachProfile == null)
+    if (coachProfile == null)
     {
         coachProfile = new CoachProfile
         {
@@ -169,18 +169,18 @@ using (var scope = app.Services.CreateScope())
     await dbContext.SaveChangesAsync();
 
 }
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
-    app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
-    app.UseCors("Frontend");
+app.UseCors("Frontend");
 
-    app.UseAuthentication();
-    app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
-    app.MapControllers();
-    app.Run();
+app.MapControllers();
+app.Run();

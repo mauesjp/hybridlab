@@ -222,6 +222,169 @@ namespace HybridLab.API.Controllers
         }
 
         [Authorize(Roles = "Student")]
+        [HttpPut("sets/{setId:int}")]
+        public async Task<ActionResult> UpdateSet(int setId, UpdateWorkoutSetDto dto)
+        {
+            var userId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+
+            var student = await _context.Students
+                .FirstOrDefaultAsync(student => student.UserId == userId);
+
+            if (student == null)
+            {
+                return BadRequest("Perfil de aluno não encontrado.");
+            }
+
+            var workoutSet = await _context.WorkoutSets
+                .FirstOrDefaultAsync(set => set.Id == setId);
+
+            if (workoutSet == null)
+            {
+                return NotFound("Série não encontrada.");
+            }
+
+            var workoutExercise = await _context.WorkoutExercises
+                .FirstOrDefaultAsync(exercise =>
+                    exercise.Id == workoutSet.WorkoutExerciseId
+                );
+
+            if (workoutExercise == null)
+            {
+                return NotFound("Exercício do treino não encontrado.");
+            }
+
+            var session = await _context.WorkoutSessions
+                .FirstOrDefaultAsync(session =>
+                    session.Id == workoutExercise.WorkoutSessionId
+                );
+
+            if (session == null)
+            {
+                return NotFound("Sessão de treino não encontrada.");
+            }
+
+            if (session.StudentId != student.Id)
+            {
+                return Forbid();
+            }
+
+            if (session.FinishedAt != null)
+            {
+                return BadRequest(
+                    "Não é possível editar séries de um treino finalizado."
+                );
+            }
+
+            workoutSet.Weight = dto.Weight;
+            workoutSet.Reps = dto.Reps;
+            workoutSet.Rir = dto.Rir;
+            workoutSet.Rpe = dto.Rpe;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                workoutSet.Id,
+                workoutSet.WorkoutExerciseId,
+                workoutSet.SetNumber,
+                workoutSet.Weight,
+                workoutSet.Reps,
+                workoutSet.Rir,
+                workoutSet.Rpe,
+                workoutSet.RecordedAt
+            });
+
+        }
+
+        [Authorize(Roles = "Student")]
+        [HttpDelete("sets/{setId:int}")]
+        public async Task<ActionResult> DeleteSet(int setId)
+        {
+            var userId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+
+            var student = await _context.Students
+                .FirstOrDefaultAsync(student => student.UserId == userId);
+
+            if (student == null)
+            {
+                return BadRequest("Perfil de aluno não encontrado.");
+            }
+
+            var workoutSet = await _context.WorkoutSets
+                .FirstOrDefaultAsync(set => set.Id == setId);
+
+            if (workoutSet == null)
+            {
+                return NotFound("Série não encontrada.");
+            }
+
+            var workoutExercise = await _context.WorkoutExercises
+                .FirstOrDefaultAsync(exercise =>
+                    exercise.Id == workoutSet.WorkoutExerciseId
+                );
+
+            if (workoutExercise == null)
+            {
+                return NotFound("Exercício do treino não encontrado.");
+            }
+
+            var session = await _context.WorkoutSessions
+                .FirstOrDefaultAsync(session =>
+                    session.Id == workoutExercise.WorkoutSessionId
+                );
+
+            if (session == null)
+            {
+                return NotFound("Sessão de treino não encontrada.");
+            }
+
+            if (session.StudentId != student.Id)
+            {
+                return Forbid();
+            }
+
+            if (session.FinishedAt != null)
+            {
+                return BadRequest(
+                    "Não é possível remover séries de um treino finalizado."
+                );
+            }
+
+            var remainingSets = await _context.WorkoutSets
+                .Where(set =>
+                    set.WorkoutExerciseId == workoutExercise.Id &&
+                    set.Id != workoutSet.Id
+                )
+                .OrderBy(set => set.SetNumber)
+                .ToListAsync();
+
+            _context.WorkoutSets.Remove(workoutSet);
+
+            for (var index = 0; index < remainingSets.Count; index++)
+            {
+                remainingSets[index].SetNumber = index + 1;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        [Authorize(Roles = "Student")]
         [HttpPut("{sessionId}/finish")]
         public async Task<ActionResult> Finish(int sessionId)
         {
@@ -437,5 +600,6 @@ namespace HybridLab.API.Controllers
                 session.StartedAt
             });
         }
+
     }
 }
