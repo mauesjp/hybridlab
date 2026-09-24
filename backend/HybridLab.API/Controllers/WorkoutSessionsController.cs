@@ -601,5 +601,153 @@ namespace HybridLab.API.Controllers
             });
         }
 
+        [Authorize(Roles = "Student")]
+        [HttpGet("{sessionId:int}/previous-performance")]
+        public async Task<ActionResult<List<PreviousExercisePerformanceDto>>> GetPreviousPerformance(int sessionId)
+        {
+            var userId =
+                User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+
+            var student = await _context.Students
+                .FirstOrDefaultAsync(student =>
+                    student.UserId == userId
+                );
+
+            if (student == null)
+            {
+                return BadRequest(
+                    "Perfil de aluno não encontrado."
+                );
+            }
+
+            var currentSession = await _context.WorkoutSessions
+                .FirstOrDefaultAsync(session =>
+                    session.Id == sessionId
+                );
+
+            if (currentSession == null)
+            {
+                return NotFound(
+                    "Sessão de treino não encontrada."
+                );
+            }
+
+            if (currentSession.StudentId != student.Id)
+            {
+                return Forbid();
+            }
+
+            var currentExercises = await _context.WorkoutExercises
+                .Where(exercise =>
+                    exercise.WorkoutSessionId == currentSession.Id
+                )
+                .OrderBy(exercise => exercise.Order)
+                .ToListAsync();
+
+            if (currentExercises.Count == 0)
+            {
+                return Ok(
+                    new List<PreviousExercisePerformanceDto>()
+                );
+            }
+
+            var exerciseNames = currentExercises
+                .Select(exercise => exercise.ExerciseName)
+                .Distinct()
+                .ToList();
+
+            var candidates = await (
+                from exercise in _context.WorkoutExercises
+                join previousSession in _context.WorkoutSessions
+                    on exercise.WorkoutSessionId equals previousSession.Id
+
+                where
+                    previousSession.StudentId == student.Id
+                    && previousSession.FinishedAt != null
+                    && previousSession.StartedAt < currentSession.StartedAt
+                    && exerciseNames.Contains(exercise.ExerciseName)
+
+                orderby previousSession.StartedAt descending
+
+                select new
+                {
+                    exercise.Id,
+                    exercise.ExerciseName,
+                    previousSession.StartedAt
+                }
+            ).ToListAsync();
+
+            var latestByExerciseName = candidates
+                .GroupBy(
+                    candidate => candidate.ExerciseName,
+                    StringComparer.OrdinalIgnoreCase
+                )
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.First(),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+            var previousExerciseIds = latestByExerciseName
+                .Values
+                .Select(candidate => candidate.Id)
+                .ToList();
+
+            var previousSets = await _context.WorkoutSets
+                .Where(set =>
+                    previousExerciseIds.Contains(
+                        set.WorkoutExerciseId
+                    )
+                )
+                .OrderBy(set => set.SetNumber)
+                .ToListAsync();
+
+            var response = currentExercises
+                .Select(currentExercise =>
+                {
+                    latestByExerciseName.TryGetValue(
+                        currentExercise.ExerciseName,
+                        out var previousExercise
+                    );
+
+                    return new PreviousExercisePerformanceDto
+                    {
+                        WorkoutExerciseId = currentExercise.Id,
+                        ExerciseName = currentExercise.ExerciseName,
+
+                        PreviousSessionStartedAt =
+                            previousExercise?.StartedAt,
+
+                        Sets = previousExercise == null
+                            ? new List<PreviousWorkoutSetDto>()
+                            : previousSets
+                                .Where(set =>
+                                    set.WorkoutExerciseId ==
+                                    previousExercise.Id
+                                )
+                                .OrderBy(set => set.SetNumber)
+                                .Select(set =>
+                                    new PreviousWorkoutSetDto
+                                    {
+                                        SetNumber = set.SetNumber,
+                                        Weight = set.Weight,
+                                        Reps = set.Reps,
+                                        Rir = set.Rir,
+                                        Rpe = set.Rpe
+                                    }
+                                )
+                                .ToList()
+                    };
+                })
+                .ToList();
+
+            return Ok(response);
+        }
     }
 }

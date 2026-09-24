@@ -38,6 +38,19 @@ export interface WorkoutDay extends DayInput { id: number; exercises: PlannedExe
 export interface PlanDetails extends PlanSummary { days: WorkoutDay[] }
 export interface SetInput { weight: number | null; reps: number; rir: number | null; rpe: number | null }
 export interface WorkoutSet extends SetInput { id: number; setNumber: number; recordedAt: string }
+export interface PreviousWorkoutSet {
+  setNumber: number
+  weight: number | null
+  reps: number
+  rir: number | null
+  rpe: number | null
+}
+export interface PreviousExercisePerformance {
+  workoutExerciseId: number
+  exerciseName: string
+  previousSessionStartedAt: string | null
+  sets: PreviousWorkoutSet[]
+}
 export interface WorkoutExercise {
   id: number
   plannedExerciseId: number
