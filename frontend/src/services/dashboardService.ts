@@ -22,6 +22,7 @@ export const dashboardService = {
   addExercise: (dayId: number, body: ExerciseInput) => api<PlannedExercise>(`/StrengthPlans/days/${dayId}/exercises`, 'POST', body),
   updateExercise: (id: number, body: ExerciseInput) => api<PlannedExercise>(`/StrengthPlans/exercises/${id}`, 'PUT', body),
   deleteExercise: (id: number) => api(`/StrengthPlans/exercises/${id}`, 'DELETE'),
+  finishExercise: (id: number) => api(`/WorkoutSessions/exercises/${id}/finish`, 'PUT'),
   activeSession: () => api<ActiveSession>('/WorkoutSessions/active'),
   session: (id: number) => api<SessionDetails>(`/WorkoutSessions/${id}`),
   previousPerformance: (sessionId: number) => api<PreviousExercisePerformance[]>(`/WorkoutSessions/${sessionId}/previous-performance`),

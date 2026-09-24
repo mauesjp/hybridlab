@@ -62,6 +62,8 @@ export interface WorkoutExercise {
   targetRir: number | null
   notes: string | null
   sets: WorkoutSet[]
+  isCompleted: boolean
+  completedAt: string | null
 }
 export interface SessionSummary {
   id: number

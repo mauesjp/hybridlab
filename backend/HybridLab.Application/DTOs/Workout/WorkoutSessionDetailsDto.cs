@@ -24,6 +24,8 @@
         public int MaxReps { get; set; }
         public int? TargetRir { get; set; }
         public string? Notes { get; set; }
+        public bool IsCompleted { get; set; }
+        public DateTime? CompletedAt { get; set; }
 
         public List<WorkoutSetDetailsDto> Sets { get; set; } = new();
     }
