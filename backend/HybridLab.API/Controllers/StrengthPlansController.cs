@@ -825,6 +825,71 @@ namespace HybridLab.API.Controllers
             return Ok(response);
         }
 
+        [Authorize(Roles = "Student,Coach")]
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult> DeletePlan(int id)
+        {
+            var plan = await _context.StrengthPlans
+                .FirstOrDefaultAsync(plan => plan.Id == id);
+
+            if (plan == null)
+            {
+                return NotFound("Plano não encontrado.");
+            }
+
+            var canManage = await CanManageStudentStrengthPlanningAsync(
+                plan.StudentId
+            );
+
+            if (!canManage)
+            {
+                return Forbid();
+            }
+
+            if (plan.IsPublished)
+            {
+                return BadRequest(
+                    "Planos publicados não podem ser excluídos, pois fazem parte do histórico."
+                );
+            }
+
+            var hasSessions = await _context.WorkoutSessions
+                .AnyAsync(session =>
+                    session.StrengthPlanId == plan.Id
+                );
+
+            if (hasSessions)
+            {
+                return BadRequest(
+                    "Este plano possui treinos registrados e não pode ser excluído."
+                );
+            }
+
+            var days = await _context.StrengthWorkoutDays
+                .Where(day =>
+                    day.StrengthPlanId == plan.Id
+                )
+                .ToListAsync();
+
+            var dayIds = days
+                .Select(day => day.Id)
+                .ToList();
+
+            var exercises = await _context.PlannedExercises
+                .Where(exercise =>
+                    dayIds.Contains(exercise.StrengthWorkoutDayId)
+                )
+                .ToListAsync();
+
+            _context.PlannedExercises.RemoveRange(exercises);
+            _context.StrengthWorkoutDays.RemoveRange(days);
+            _context.StrengthPlans.Remove(plan);
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         private async Task<bool> CanManageStudentStrengthPlanningAsync(int studentId)
         {
             var userId =

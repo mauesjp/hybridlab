@@ -27,7 +27,44 @@ export default function PlanView({ id, dashboard, access, active, onChanged }: {
     <Panel><div className="flex flex-wrap gap-2"><Badge>{planStatus(plan)}</Badge><Badge>Versão {plan.versionNumber}</Badge></div><h1 className="mt-4 text-3xl font-semibold tracking-tight">{plan.name}</h1><p className="mt-2 text-sm text-muted">Criado em {dateTime(plan.createdAt)}</p>
       {plan.isPublished && <p className="mt-4 text-sm text-muted">Esta versão está preservada. Alterações são feitas em um novo rascunho.</p>}
       {!canManage && <p className="mt-4 text-sm text-muted">O planejamento é gerenciado pelo professor de musculação. Você pode consultar e executar seu plano ativo.</p>}
-      <div className="mt-5 flex flex-wrap gap-3">{editable && <><button className="dash-secondary" onClick={() => setAddDay(!addDay)}>+ Adicionar dia</button><ConfirmButton label="Publicar plano" message="Publicar esta versão? Ela ficará ativa e não poderá mais ser editada. O plano ativo anterior será preservado como histórico." disabled={action.busy} onConfirm={() => void action.run(() => service.publish(id), saved)} /></>}
+      <div className="mt-5 flex flex-wrap gap-3">
+        {editable && (
+          <>
+            <button 
+              className="dash-secondary" 
+              onClick={() => setAddDay(!addDay)}
+            >
+              + Adicionar dia
+            </button>
+            
+            <ConfirmButton 
+              label="Publicar plano" 
+              message="Publicar esta versão? Ela ficará ativa e não poderá mais ser editada. O plano ativo anterior será preservado como histórico." 
+              disabled={action.busy} 
+              onConfirm={() => 
+                void action.run(
+                  () => service.publish(id), 
+                  saved
+                )
+              } 
+            /> 
+            
+            <ConfirmButton 
+              label="Excluir plano" 
+              message={`Excluir o plano "${plan.name}"? Todos os dias e exercícios deste rascunho serão removidos permanentemente.`}
+              disabled = {action.busy}
+              onConfirm={() => 
+                void action.run(
+                  () => service.deletePlan(id),
+                  () => {
+                    onChanged()
+                    window.location.hash = '/musculacao'
+                  }
+                )
+              }
+            />
+          </>
+        )}
         {canManage && plan.isPublished && <button className="dash-primary" disabled={action.busy || versions.some(v => v.previousVersionId === id && !v.isPublished)} onClick={() => void action.run(async () => { const draft = await service.newVersion(id); onChanged(); window.location.hash = `/plano/${draft.id}` })}>Criar nova versão</button>}
       </div><ErrorNotice message={action.error} />
     </Panel>

@@ -15,6 +15,7 @@ export const dashboardService = {
   createPlan: (name: string, studentId?: number) => api<PlanSummary>(studentId === undefined ? '/StrengthPlans' : `/StrengthPlans/students/${studentId}`, 'POST', { name }),
   publish: (id: number) => api(`/StrengthPlans/${id}/publish`, 'PUT'),
   newVersion: (id: number) => api<PlanSummary>(`/StrengthPlans/${id}/new-version`, 'POST'),
+  deletePlan: (id: number) => api(`/StrengthPlans/${id}`, 'DELETE'),
   addDay: (planId: number, body: DayInput) => api<WorkoutDay>(`/StrengthPlans/${planId}/days`, 'POST', body),
   updateDay: (id: number, body: DayInput) => api<WorkoutDay>(`/StrengthPlans/days/${id}`, 'PUT', body),
   deleteDay: (id: number) => api(`/StrengthPlans/days/${id}`, 'DELETE'),
