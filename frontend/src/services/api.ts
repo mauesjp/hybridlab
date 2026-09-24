@@ -1,5 +1,5 @@
 // Um único lugar cuida do token, renovação de sessão e mensagens da API.
-export const API_BASE = (import.meta.env?.VITE_API_URL || 'https://localhost:7086/api').replace(/\/$/, '')
+export const API_BASE = (import.meta.env.VITE_API_URL || 'https://localhost:7086/api').replace(/\/$/, '')
 
 export class ApiError extends Error {
   status: number
