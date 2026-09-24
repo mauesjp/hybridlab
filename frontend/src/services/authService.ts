@@ -28,7 +28,7 @@ export async function register(
   data: RegisterRequest
 ): Promise<RegisterResponse> {
   const response = await fetch(
-    "https://localhost:7086/api/Auth/register",
+    `${API_BASE}/Auth/register`,
     {
       method: "POST",
 
