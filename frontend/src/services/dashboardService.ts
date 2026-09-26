@@ -1,8 +1,12 @@
 import { api } from './api'
-import type { ActiveSession, CoachLink, DashboardData, DayInput, ExerciseInput, PreviousExercisePerformance, Modality, PlanDetails, PlanSummary, PlanningAccess, SessionDetails, SetInput, WorkoutDay, PlannedExercise, WorkoutSet } from '../types/dashboard'
+import type { ActiveSession, BodyWeightEntry, BodyWeightInput, CoachLink, DashboardData, DayInput, ExerciseInput, PreviousExercisePerformance, Modality, PlanDetails, PlanSummary, PlanningAccess, SessionDetails, SetInput, WorkoutDay, PlannedExercise, WorkoutSet } from '../types/dashboard'
 
 export const dashboardService = {
   me: () => api<string>('/Auth/me'),
+  bodyWeight: () => api<BodyWeightEntry[]>('/BodyWeight'),
+  createBodyWeight: (body: BodyWeightInput) => api<BodyWeightEntry>('/BodyWeight', 'POST', body),
+  updateBodyWeight: (id: number, body: BodyWeightInput) => api<BodyWeightEntry> (`/BodyWeight/${id}`, 'PUT', body),
+  deleteBodyWeight: (id: number) => api(`/BodyWeight/${id}`, 'DELETE'),
   dashboard: () => api<DashboardData>('/Dashboard'),
   access: (modality: Modality) => api<PlanningAccess>(`/PlanningAccess/${modality}`),
   pending: () => api<CoachLink[]>('/CoachLinks/pending'),

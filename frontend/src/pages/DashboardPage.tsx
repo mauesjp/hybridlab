@@ -9,6 +9,7 @@ import LinksView from '../components/dashboard/LinksView'
 import SessionView from '../components/dashboard/SessionView'
 import { Badge, Empty, ErrorNotice, Loading, Panel } from '../components/dashboard/UI'
 import { dateTime } from '../components/dashboard/format'
+import BodyWeightView from '../components/dashboard/BodyWeightView'
 
 interface LoadedDashboard { dashboard: DashboardData; accesses: PlanningAccess[]; active: ActiveSession | null; pending: CoachLink[] }
 
@@ -47,7 +48,7 @@ export default function DashboardPage({ route }: { route: string }) {
   const remote = useRemote(load)
   const data = remote.data
   const isCoach = data?.dashboard.profile.role === 'Coach'
-  const nav = [ ['#/dashboard', 'Visão geral', '01'], ['#/musculacao', 'Musculação', '02'], ['#/vinculos', isCoach ? 'Meus alunos' : 'Professores', '03'], ...(!isCoach ? [['#/historico', 'Histórico', '04']] : []) ]
+  const nav = isCoach ? [['#/dashboard', 'Visão geral', '01'], ['#/musculacao', 'Musculação', '02'], ['#/vinculos', 'Meus alunos', '03']] : [['#/dashboard', 'Visão geral', '01'], ['#/musculacao', 'Musculação', '02'], ['#/peso', 'Peso corporal', '03'], ['#/vinculos', 'Professores', '04'], ['#/historico', 'Histórico', '05']]
   const planMatch = /^#\/plano\/(\d+)$/.exec(route)
   const sessionMatch = /^#\/treino\/(\d+)$/.exec(route)
   const currentNav = planMatch || sessionMatch ? '#/musculacao' : route
@@ -59,6 +60,7 @@ export default function DashboardPage({ route }: { route: string }) {
   else if (route === '#/musculacao') content = <PlansList data={data.dashboard} access={data.accesses[0] ?? null} onChanged={remote.reload} />
   else if (route === '#/vinculos') content = <LinksView data={data.dashboard} pending={data.pending} accesses={data.accesses} onChanged={remote.reload} />
   else if (route === '#/historico' && !isCoach) content = <History data={data.dashboard} />
+  else if (route === '#/peso') content = <BodyWeightView />
   else content = <Overview data={data.dashboard} active={data.active} />
 
   return <div className="min-h-[calc(100svh-4rem)] lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">

@@ -84,3 +84,15 @@ export interface DashboardData {
   recentSessions: SessionSummary[]
   completedSessions: number
 }
+
+export interface BodyWeightEntry {
+  id: number
+  weightKg: number
+  recordedAt: string
+  createdAt: string
+}
+
+export interface BodyWeightInput {
+  weightKg: number
+  recordedAt: string
+}
