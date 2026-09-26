@@ -21,6 +21,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<WorkoutSession> WorkoutSessions { get; set; } = null!;
     public DbSet<WorkoutExercise> WorkoutExercises { get; set; } = null!;
     public DbSet<WorkoutSet> WorkoutSets { get; set; } = null!;
+    public DbSet<BodyWeightEntry> BodyWeightEntries { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -37,5 +38,22 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<CoachProfile>()
             .HasIndex(coach => coach.CoachCode)
             .IsUnique();
+
+        builder.Entity<BodyWeightEntry>()
+            .Property(entry => entry.WeightKg)
+            .HasPrecision(5, 2);
+
+        builder.Entity<BodyWeightEntry>()
+            .HasIndex(entry => new
+            {
+                entry.StudentId,
+                entry.RecordedAt
+            });
+
+        builder.Entity<BodyWeightEntry>()
+            .HasOne<StudentProfile>()
+            .WithMany()
+            .HasForeignKey(entry => entry.StudentId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
