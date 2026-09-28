@@ -42,11 +42,18 @@ namespace HybridLab.API.Controllers
                 );
             }
 
+            var recordedDate = dto.RecordedAt.Date;
+
+            if (await _context.BodyWeightEntries.AnyAsync(entry => entry.StudentId == student.Id && entry.RecordedAt == recordedDate))
+            {
+                return Conflict("Já existe uma pesagem registrada para esta data.");
+            }
+
             var entry = new BodyWeightEntry
             {
                 StudentId = student.Id,
                 WeightKg = dto.WeightKg,
-                RecordedAt = dto.RecordedAt,
+                RecordedAt = recordedDate,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -112,6 +119,8 @@ namespace HybridLab.API.Controllers
                 );
             }
 
+            var recordedDate = dto.RecordedAt.Date;
+
             var entry = await _context.BodyWeightEntries
                 .FirstOrDefaultAsync(entry =>
                     entry.Id == id &&
@@ -125,12 +134,62 @@ namespace HybridLab.API.Controllers
                 );
             }
 
+            var alreadyExists = await _context.BodyWeightEntries
+                .AnyAsync(existingEntry =>
+                    existingEntry.StudentId == student.Id &&
+                    existingEntry.RecordedAt == recordedDate &&
+                    existingEntry.Id != id
+                );
+
+            if (alreadyExists)
+            {
+                return Conflict(
+                    "Já existe uma pesagem registrada para esta data."
+                );
+            }
+
             entry.WeightKg = dto.WeightKg;
-            entry.RecordedAt = dto.RecordedAt;
+            entry.RecordedAt = recordedDate;
 
             await _context.SaveChangesAsync();
 
             return Ok(ToResponse(entry));
+        }
+
+        [HttpGet("goal")]
+        public async Task<ActionResult> GetGoal()
+        {
+            var student = await GetCurrentStudentAsync();
+
+            if (student == null)
+            {
+                return BadRequest("Perfil de aluno não encontrado.");
+            }
+
+            return Ok(new
+            {
+                student.GoalWeightKg
+            });
+        }
+
+        [HttpPut("goal")]
+        public async Task<ActionResult> UpdateGoal(UpdateBodyWeightGoalDto dto)
+        {
+            var student = await GetCurrentStudentAsync();
+
+            if (student == null)
+            {
+                return BadRequest("Perfil de aluno não encontrado.");
+            }
+
+            student.GoalWeightKg = dto.GoalWeightKg;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                student.GoalWeightKg
+            });
         }
 
         [HttpDelete("{id:int}")]

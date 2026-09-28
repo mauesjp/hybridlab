@@ -43,12 +43,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .Property(entry => entry.WeightKg)
             .HasPrecision(5, 2);
 
+        builder.Entity<StudentProfile>()
+            .Property(student => student.GoalWeightKg)
+            .HasPrecision(5, 2);
+
+        builder.Entity<BodyWeightEntry>()
+            .Property(entry => entry.RecordedAt)
+            .HasColumnType("date");
+
         builder.Entity<BodyWeightEntry>()
             .HasIndex(entry => new
             {
                 entry.StudentId,
                 entry.RecordedAt
-            });
+            })
+            .IsUnique();
 
         builder.Entity<BodyWeightEntry>()
             .HasOne<StudentProfile>()
