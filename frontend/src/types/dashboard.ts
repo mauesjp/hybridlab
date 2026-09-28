@@ -100,3 +100,7 @@ export interface BodyWeightInput {
   weightKg: number
   recordedAt: string
 }
+
+export interface BodyWeightGoal {
+  goalWeightKg: number | null
+}
