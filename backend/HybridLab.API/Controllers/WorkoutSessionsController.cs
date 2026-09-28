@@ -1,5 +1,6 @@
 ﻿using HybridLab.Application.DTOs.Workout;
 using HybridLab.Domain.Entities;
+using HybridLab.Domain.Enums;
 using HybridLab.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -425,6 +426,24 @@ namespace HybridLab.API.Controllers
                 return BadRequest("Este treino já foi finalizado.");
             }
 
+            var exercises = await _context.WorkoutExercises.Where(exercise => exercise.WorkoutSessionId == session.Id).ToListAsync();
+
+            if(exercises.Count == 0)
+            {
+                return BadRequest("Esta sessão não possui exercícios.");
+            }
+
+            var allExercisesCompleted = exercises.All(exercise => exercise.IsCompleted);
+
+            if (allExercisesCompleted)
+            {
+                session.Status = WorkoutSessionStatus.Completed;
+            }
+            else
+            {
+                session.Status = WorkoutSessionStatus.Partial;
+            }
+
             session.FinishedAt = DateTime.UtcNow;
             session.IsCompleted = true;
 
@@ -435,7 +454,8 @@ namespace HybridLab.API.Controllers
                 session.Id,
                 session.StartedAt,
                 session.FinishedAt,
-                session.IsCompleted
+                session.IsCompleted,
+                session.Status
             });
         }
 
@@ -511,6 +531,7 @@ namespace HybridLab.API.Controllers
                 StartedAt = session.StartedAt,
                 FinishedAt = session.FinishedAt,
                 IsCompleted = session.IsCompleted,
+                Status = session.Status,
 
                 Exercises = workoutExercises
                     .Select(workoutExercise =>

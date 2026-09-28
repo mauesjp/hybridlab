@@ -59,14 +59,34 @@ public class DashboardController(AppDbContext context) : ControllerBase
         // O professor não recebe execuções: hoje esse acesso pertence apenas ao aluno.
         var sessionsQuery = context.WorkoutSessions.AsNoTracking()
             .Where(x => isStudent && x.StudentId == studentId);
-        var completedSessions = await sessionsQuery.CountAsync(x => x.IsCompleted, cancellationToken);
+        var completedSessions = await sessionsQuery.CountAsync(
+            x => x.Status == WorkoutSessionStatus.Completed,
+            cancellationToken
+        );
+
+        var partialSessions = await sessionsQuery.CountAsync(
+            x => x.Status == WorkoutSessionStatus.Partial,
+            cancellationToken
+        );
+
+        var finishedSessions = await sessionsQuery.CountAsync(
+            x => x.IsCompleted,
+            cancellationToken
+        );
+
         var recentSessions = await (
             from session in sessionsQuery
             join day in context.StrengthWorkoutDays on session.StrengthWorkoutDayId equals day.Id
             orderby session.StartedAt descending
             select new {
-                session.Id, session.StrengthPlanId, session.StrengthWorkoutDayId,
-                DayName = day.Name, session.StartedAt, session.FinishedAt, session.IsCompleted
+                session.Id,
+                session.StrengthPlanId,
+                session.StrengthWorkoutDayId,
+                DayName = day.Name,
+                session.StartedAt,
+                session.FinishedAt,
+                session.IsCompleted,
+                session.Status
             }).Take(20).ToListAsync(cancellationToken);
 
         return Ok(new {
@@ -78,7 +98,12 @@ public class DashboardController(AppDbContext context) : ControllerBase
                 CanCoachStrength = coach?.CanCoachStrength ?? false,
                 CanCoachRunning = coach?.CanCoachRunning ?? false
             },
-            Links = links, Plans = plans, RecentSessions = recentSessions, CompletedSessions = completedSessions
+            Links = links,
+            Plans = plans,
+            RecentSessions = recentSessions,
+            FinishedSessions = finishedSessions,
+            CompletedSessions = completedSessions,
+            PartialSessions = partialSessions
         });
     }
 }

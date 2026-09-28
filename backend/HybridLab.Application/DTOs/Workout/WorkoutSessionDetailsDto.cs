@@ -1,4 +1,6 @@
-﻿namespace HybridLab.Application.DTOs.Workout
+﻿using HybridLab.Domain.Enums;
+
+namespace HybridLab.Application.DTOs.Workout
 {
     public class WorkoutSessionDetailsDto
     {
@@ -8,6 +10,7 @@
         public DateTime StartedAt { get; set; }
         public DateTime? FinishedAt { get; set; }
         public bool IsCompleted { get; set; }
+        public WorkoutSessionStatus Status { get; set; }
 
         public List<WorkoutExerciseDetailsDto> Exercises { get; set; } = new();
     }

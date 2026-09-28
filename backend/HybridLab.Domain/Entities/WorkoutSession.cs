@@ -1,4 +1,6 @@
-﻿namespace HybridLab.Domain.Entities
+﻿using HybridLab.Domain.Enums;
+
+namespace HybridLab.Domain.Entities
 {
     public class WorkoutSession
     {
@@ -9,5 +11,6 @@
         public DateTime StartedAt { get; set; }
         public DateTime? FinishedAt { get; set; }
         public bool IsCompleted { get; set; }
+        public WorkoutSessionStatus Status { get; set; } = WorkoutSessionStatus.InProgress;
     }
 }
