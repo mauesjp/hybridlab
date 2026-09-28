@@ -1,6 +1,7 @@
 export type Role = 'Student' | 'Coach'
 export type Modality = 0 | 1
 export type LinkStatus = 0 | 1 | 2 | 3
+export type WorkoutSessionStatus = 0 | 1 | 2
 
 export interface CoachLink {
   id: number
@@ -73,6 +74,7 @@ export interface SessionSummary {
   startedAt: string
   finishedAt: string | null
   isCompleted: boolean
+  status: WorkoutSessionStatus
 }
 export interface SessionDetails extends Omit<SessionSummary, 'dayName'> { exercises: WorkoutExercise[] }
 export type ActiveSession = { hasActiveSession: false } | { hasActiveSession: true; sessionId: number; startedAt: string }
@@ -83,6 +85,8 @@ export interface DashboardData {
   links: CoachLink[]
   recentSessions: SessionSummary[]
   completedSessions: number
+  finishedSessions: number
+  partialSessions: number
 }
 
 export interface BodyWeightEntry {

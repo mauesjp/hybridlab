@@ -8,7 +8,7 @@ import PlanView from '../components/dashboard/PlanView'
 import LinksView from '../components/dashboard/LinksView'
 import SessionView from '../components/dashboard/SessionView'
 import { Badge, Empty, ErrorNotice, Loading, Panel } from '../components/dashboard/UI'
-import { dateTime } from '../components/dashboard/format'
+import { dateTime, sessionStatusLabel } from '../components/dashboard/format'
 import BodyWeightView from '../components/dashboard/BodyWeightView'
 
 interface LoadedDashboard { dashboard: DashboardData; accesses: PlanningAccess[]; active: ActiveSession | null; pending: CoachLink[] }
@@ -33,7 +33,7 @@ function Overview({ data, active }: { data: DashboardData; active: ActiveSession
 
 function History({ data, compact = false }: { data: DashboardData; compact?: boolean }) {
   const sessions = compact ? data.recentSessions.slice(0, 4) : data.recentSessions
-  return <Panel title={compact ? 'Últimos treinos' : 'Histórico de treinos'} action={compact ? <a className="auth-link text-sm" href="#/historico">Ver histórico</a> : undefined}>{!compact && <p className="mb-5 text-sm text-muted">Suas 20 sessões mais recentes, com os registros de cada série.</p>}{!sessions.length ? <Empty>Seus treinos aparecerão aqui quando você iniciar a primeira sessão.</Empty> : <div className="divide-y divide-border">{sessions.map(session => <a key={session.id} href={'#/treino/' + session.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg py-4 hover:bg-control"><div><p className="font-medium">{session.dayName}</p><p className="mt-1 text-sm text-muted">{dateTime(session.startedAt)}</p></div><Badge>{session.isCompleted ? 'Concluído' : 'Em andamento'} →</Badge></a>)}</div>}</Panel>
+  return <Panel title={compact ? 'Últimos treinos' : 'Histórico de treinos'} action={compact ? <a className="auth-link text-sm" href="#/historico">Ver histórico</a> : undefined}>{!compact && <p className="mb-5 text-sm text-muted">Suas 20 sessões mais recentes, com os registros de cada série.</p>}{!sessions.length ? <Empty>Seus treinos aparecerão aqui quando você iniciar a primeira sessão.</Empty> : <div className="divide-y divide-border">{sessions.map(session => <a key={session.id} href={'#/treino/' + session.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg py-4 hover:bg-control"><div><p className="font-medium">{session.dayName}</p><p className="mt-1 text-sm text-muted">{dateTime(session.startedAt)}</p></div><Badge>{sessionStatusLabel(session.status)} →</Badge></a>)}</div>}</Panel>
 }
 
 export default function DashboardPage({ route }: { route: string }) {

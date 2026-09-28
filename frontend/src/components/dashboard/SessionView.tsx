@@ -4,17 +4,13 @@ import {
   useRef,
   useState
 } from 'react'
-
 import type { FormEvent } from 'react'
-
 import { dashboardService as service } from '../../services/dashboardService'
 import { useAction, useRemote } from '../../hooks/useRemote'
-
 import type {
   PreviousExercisePerformance,
   WorkoutExercise
 } from '../../types/dashboard'
-
 import {
   Badge,
   ConfirmButton,
@@ -24,17 +20,15 @@ import {
   Loading,
   Panel
 } from './UI'
-
 import {
   dateTime,
   numberValue,
-  optionalNumber
+  optionalNumber,
+  sessionStatusLabel
 } from './format'
-
 function uniqueNumbers(values: number[]) {
   return [...new Set(values)]
 }
-
 function clamp(
   value: number,
   min: number,
@@ -42,11 +36,9 @@ function clamp(
 ) {
   return Math.min(max, Math.max(min, value))
 }
-
 function formatNumber(value: number) {
   return Number(value.toFixed(2)).toString()
 }
-
 function QuickButtons({
   values,
   unit,
@@ -59,7 +51,6 @@ function QuickButtons({
   if (!values.length) {
     return null
   }
-
   return (
     <div className="mt-2 flex flex-wrap gap-2">
       {values.map(value => (
@@ -76,7 +67,6 @@ function QuickButtons({
     </div>
   )
 }
-
 function ExerciseLog({
   exercise,
   previous,
@@ -91,21 +81,16 @@ function ExerciseLog({
   onFinished: (exerciseId: number) => void
 }) {
   const action = useAction()
-
   const [editingSetId, setEditingSetId] =
     useState<number | null>(null)
-
   const formRef =
     useRef<HTMLFormElement>(null)
-
   const nextSetNumber =
     exercise.sets.length + 1
-
   const previousSet =
     previous?.sets.find(
       set => set.setNumber === nextSetNumber
     )
-
   function fillField(
     fieldName: string,
     value: number
@@ -114,22 +99,18 @@ function ExerciseLog({
       formRef.current?.elements.namedItem(
         fieldName
       )
-
     if (field instanceof HTMLInputElement) {
       field.value = formatNumber(value)
       field.focus()
     }
   }
-
   function submitEdit(
     event: FormEvent<HTMLFormElement>,
     setId: number
   ) {
     event.preventDefault()
-
     const form =
       new FormData(event.currentTarget)
-
     const input = {
       weight: optionalNumber(
         form,
@@ -148,7 +129,6 @@ function ExerciseLog({
         'rpe'
       )
     }
-
     void action.run(
       () =>
         service.updateSet(
@@ -161,15 +141,12 @@ function ExerciseLog({
       }
     )
   }
-
   function submit(
     event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault()
-
     const form =
       new FormData(event.currentTarget)
-
     const input = {
       weight: optionalNumber(
         form,
@@ -188,7 +165,6 @@ function ExerciseLog({
         'rpe'
       )
     }
-
     void action.run(
       () =>
         service.addSet(
@@ -198,7 +174,6 @@ function ExerciseLog({
       onSaved
     )
   }
-
   const weightOptions =
     previousSet?.weight == null
       ? []
@@ -207,7 +182,6 @@ function ExerciseLog({
           previousSet.weight + 3,
           previousSet.weight + 5
         ])
-
   const repsOptions =
     previousSet == null
       ? []
@@ -224,7 +198,6 @@ function ExerciseLog({
             100
           )
         ])
-
   const rirOptions =
     previousSet?.rir == null
       ? []
@@ -241,7 +214,6 @@ function ExerciseLog({
             10
           )
         ])
-
   const rpeOptions =
     previousSet?.rpe == null
       ? []
@@ -258,7 +230,6 @@ function ExerciseLog({
             10
           )
         ])
-
   return (
     <Panel>
       <div className="flex flex-wrap justify-between gap-3">
@@ -269,18 +240,15 @@ function ExerciseLog({
               .toString()
               .padStart(2, '0')}
           </p>
-
           <h2 className="text-xl font-semibold">
             {exercise.exerciseName}
           </h2>
         </div>
-
         <div className="flex flex-wrap gap-2">
           <Badge>
             {exercise.sets.length} /{' '}
             {exercise.targetSets} séries
           </Badge>
-
           {exercise.isCompleted && (
             <Badge>
               Concluído
@@ -288,25 +256,21 @@ function ExerciseLog({
           )}
         </div>
       </div>
-
       <p className="mt-3 text-sm text-muted">
         Prescrição:{' '}
         {exercise.targetSets} ×{' '}
         {exercise.minReps}–
         {exercise.maxReps}{' '}
         repetições
-
         {exercise.targetRir !== null
           ? ` · RIR ${exercise.targetRir}`
           : ''}
       </p>
-
       {exercise.notes && (
         <p className="mt-2 text-sm text-muted">
           {exercise.notes}
         </p>
       )}
-
       {exercise.sets.length > 0 && (
         <div className="mt-5 overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -314,7 +278,6 @@ function ExerciseLog({
               Séries registradas de{' '}
               {exercise.exerciseName}
             </caption>
-
             <thead className="text-muted">
               <tr>
                 {[
@@ -331,7 +294,6 @@ function ExerciseLog({
                     {header}
                   </th>
                 ))}
-
                 {!finished &&
                   !exercise.isCompleted && (
                     <th className="p-2 font-normal">
@@ -340,7 +302,6 @@ function ExerciseLog({
                   )}
               </tr>
             </thead>
-
             <tbody>
               {exercise.sets.map(set =>
                 editingSetId === set.id ? (
@@ -351,7 +312,6 @@ function ExerciseLog({
                     <td className="p-2">
                       {set.setNumber}
                     </td>
-
                     <td
                       colSpan={5}
                       className="p-2"
@@ -378,7 +338,6 @@ function ExerciseLog({
                             }
                             placeholder="Opcional"
                           />
-
                           <Field
                             label="Repetições"
                             name="reps"
@@ -391,7 +350,6 @@ function ExerciseLog({
                               set.reps
                             }
                           />
-
                           <Field
                             label="RIR"
                             name="rir"
@@ -404,7 +362,6 @@ function ExerciseLog({
                             }
                             placeholder="Opcional"
                           />
-
                           <Field
                             label="RPE"
                             name="rpe"
@@ -418,7 +375,6 @@ function ExerciseLog({
                             placeholder="Opcional"
                           />
                         </div>
-
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="submit"
@@ -431,7 +387,6 @@ function ExerciseLog({
                               ? 'Salvando…'
                               : 'Salvar alteração'}
                           </button>
-
                           <button
                             type="button"
                             className="dash-secondary"
@@ -458,25 +413,20 @@ function ExerciseLog({
                     <td className="p-2">
                       {set.setNumber}
                     </td>
-
                     <td className="p-2 whitespace-nowrap">
                       {set.weight === null
                         ? '—'
                         : `${set.weight} kg`}
                     </td>
-
                     <td className="p-2">
                       {set.reps}
                     </td>
-
                     <td className="p-2">
                       {set.rir ?? '—'}
                     </td>
-
                     <td className="p-2">
                       {set.rpe ?? '—'}
                     </td>
-
                     {!finished &&
                       !exercise.isCompleted && (
                         <td className="p-2">
@@ -492,7 +442,6 @@ function ExerciseLog({
                             >
                               Editar
                             </button>
-
                             <ConfirmButton
                               label="Remover"
                               message={`Remover a série ${set.setNumber}?`}
@@ -519,7 +468,6 @@ function ExerciseLog({
           </table>
         </div>
       )}
-
       {!finished &&
         !exercise.isCompleted && (
           <form
@@ -535,7 +483,6 @@ function ExerciseLog({
                 Registrar série{' '}
                 {nextSetNumber}
               </legend>
-
               {previous?.previousSessionStartedAt && (
                 <div className="rounded-xl border border-border bg-background p-3">
                   <p className="text-xs text-muted">
@@ -548,7 +495,6 @@ function ExerciseLog({
                   </p>
                 </div>
               )}
-
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                   <Field
@@ -564,7 +510,6 @@ function ExerciseLog({
                         ?.weight ?? ''
                     }
                   />
-
                   {previousSet && (
                     <p className="mt-2 text-xs text-muted">
                       Último treino:{' '}
@@ -574,7 +519,6 @@ function ExerciseLog({
                         : `${previousSet.weight} kg`}
                     </p>
                   )}
-
                   <QuickButtons
                     values={
                       weightOptions
@@ -588,7 +532,6 @@ function ExerciseLog({
                     }
                   />
                 </div>
-
                 <div>
                   <Field
                     label="Repetições"
@@ -603,7 +546,6 @@ function ExerciseLog({
                         ?.reps ?? ''
                     }
                   />
-
                   {previousSet && (
                     <p className="mt-2 text-xs text-muted">
                       Último treino:{' '}
@@ -611,7 +553,6 @@ function ExerciseLog({
                       reps
                     </p>
                   )}
-
                   <QuickButtons
                     values={repsOptions}
                     onSelect={value =>
@@ -622,7 +563,6 @@ function ExerciseLog({
                     }
                   />
                 </div>
-
                 <div>
                   <Field
                     label="RIR"
@@ -637,7 +577,6 @@ function ExerciseLog({
                         ?.rir ?? ''
                     }
                   />
-
                   {previousSet && (
                     <p className="mt-2 text-xs text-muted">
                       Último treino:{' '}
@@ -645,7 +584,6 @@ function ExerciseLog({
                         '—'}
                     </p>
                   )}
-
                   <QuickButtons
                     values={rirOptions}
                     onSelect={value =>
@@ -656,7 +594,6 @@ function ExerciseLog({
                     }
                   />
                 </div>
-
                 <div>
                   <Field
                     label="RPE"
@@ -671,7 +608,6 @@ function ExerciseLog({
                         ?.rpe ?? ''
                     }
                   />
-
                   {previousSet && (
                     <p className="mt-2 text-xs text-muted">
                       Último treino:{' '}
@@ -679,7 +615,6 @@ function ExerciseLog({
                         '—'}
                     </p>
                   )}
-
                   <QuickButtons
                     values={rpeOptions}
                     onSelect={value =>
@@ -691,17 +626,14 @@ function ExerciseLog({
                   />
                 </div>
               </div>
-
               <p className="text-xs leading-5 text-muted">
                 RIR: repetições restantes.
                 RPE: esforço percebido de
                 0 a 10.
               </p>
-
               <ErrorNotice
                 message={action.error}
               />
-
               <button className="dash-primary">
                 {action.busy
                   ? 'Salvando…'
@@ -710,7 +642,6 @@ function ExerciseLog({
             </fieldset>
           </form>
         )}
-
       {!finished &&
         !exercise.isCompleted && (
           <div className="mt-6 border-t border-border pt-5">
@@ -734,7 +665,6 @@ function ExerciseLog({
                 )
               }
             />
-
             {exercise.sets.length ===
               0 && (
               <p className="mt-2 text-xs text-muted">
@@ -745,13 +675,11 @@ function ExerciseLog({
             )}
           </div>
         )}
-
       {exercise.isCompleted && (
         <div className="mt-5 border-t border-border pt-4">
           <p className="text-sm font-medium">
             ✓ Exercício concluído
           </p>
-
           {exercise.completedAt && (
             <p className="mt-1 text-xs text-muted">
               Finalizado em{' '}
@@ -765,12 +693,10 @@ function ExerciseLog({
     </Panel>
   )
 }
-
 type ScrollTarget = {
   completedExerciseId: number
   nextExerciseId: number | null
 }
-
 export default function SessionView({
   id,
   onChanged
@@ -789,7 +715,6 @@ export default function SessionView({
           id
         )
       ])
-
       return {
         session,
         previousPerformance
@@ -797,31 +722,25 @@ export default function SessionView({
     },
     [id]
   )
-
   const remote = useRemote(load)
   const action = useAction()
-
   const scrollTargetRef =
     useRef<ScrollTarget | null>(null)
-
   useEffect(() => {
     const scrollTarget =
       scrollTargetRef.current
-
     if (
       !scrollTarget ||
       !remote.data
     ) {
       return
     }
-
     const completedExercise =
       remote.data.session.exercises.find(
         exercise =>
           exercise.id ===
           scrollTarget.completedExerciseId
       )
-
     /*
      * Só fazemos o scroll depois que o reload
      * trouxer o exercício como concluído.
@@ -831,31 +750,25 @@ export default function SessionView({
     ) {
       return
     }
-
     const elementId =
       scrollTarget.nextExerciseId !== null
         ? `exercise-${scrollTarget.nextExerciseId}`
         : 'finish-session'
-
     requestAnimationFrame(() => {
       const element =
         document.getElementById(
           elementId
         )
-
       element?.scrollIntoView({
         behavior: 'smooth',
         block: 'start'
       })
-
       scrollTargetRef.current = null
     })
   }, [remote.data])
-
   if (remote.loading) {
     return <Loading />
   }
-
   if (
     remote.error ||
     !remote.data
@@ -867,28 +780,43 @@ export default function SessionView({
       />
     )
   }
-
   const {
     session,
     previousPerformance
   } = remote.data
-
   const finished =
     session.finishedAt !== null
-
+  const isPartial =
+    session.status === 2
+  const completedExercises =
+    session.exercises.filter(
+      exercise => exercise.isCompleted
+    ).length
+  const totalExercises =
+    session.exercises.length
+  const hasIncompleteExercises =
+    completedExercises < totalExercises
+  const totalSets =
+    session.exercises.reduce(
+      (total, exercise) =>
+        total + exercise.sets.length,
+      0
+    )
+  const durationMs =
+    session.finishedAt !== null
+      ? new Date(session.finishedAt).getTime() -
+        new Date(session.startedAt).getTime()
+      : null
+  const durationLabel =
+    durationMs === null
+      ? null
+      : durationMs < 60_000
+        ? '< 1 min'
+        : `${Math.round(durationMs / 60_000)} min`
   const saved = () => {
     remote.reload()
     onChanged()
   }
-
-  const totalSets =
-    session.exercises.reduce(
-      (total, exercise) =>
-        total +
-        exercise.sets.length,
-      0
-    )
-
   const orderedExercises = [
     ...session.exercises
   ].sort((a, b) => {
@@ -900,10 +828,8 @@ export default function SessionView({
         ? 1
         : -1
     }
-
     return a.order - b.order
   })
-
   function exerciseFinished(
     completedExerciseId: number
   ) {
@@ -920,17 +846,14 @@ export default function SessionView({
         (a, b) =>
           a.order - b.order
       )[0]
-
     scrollTargetRef.current = {
       completedExerciseId,
       nextExerciseId:
         nextExercise?.id ?? null
     }
-
     remote.reload()
     onChanged()
   }
-
   return (
     <div className="space-y-6">
       <a
@@ -939,63 +862,48 @@ export default function SessionView({
       >
         ← Voltar ao início
       </a>
-
       <Panel>
-        <Badge>
-          {finished
-            ? 'Treino finalizado'
-            : 'Em andamento'}
-        </Badge>
-
+        <Badge>{finished ? sessionStatusLabel(session.status) : 'Em andamento'}</Badge>
         <h1 className="dash-title mt-4">
           {finished
-            ? 'Treino registrado.'
+            ? isPartial
+              ? 'Treino encerrado parcialmente.'
+              : 'Treino concluído.'
             : 'Uma série de cada vez.'}
         </h1>
-
         <p className="mt-3 text-sm text-muted">
-          Início:{' '}
-          {dateTime(
-            session.startedAt
-          )}
-
+          Início: {dateTime(session.startedAt)}
           {session.finishedAt
-            ? ` · Fim: ${dateTime(
-                session.finishedAt
-              )}`
+            ? ` · Fim: ${dateTime(session.finishedAt)}`
             : ''}
         </p>
-
-        <p className="mt-3 text-sm">
-          {totalSets} séries
-          registradas ·{' '}
-          {
-            session.exercises
-              .length
-          }{' '}
-          exercícios
-        </p>
-
+        {finished ? (
+          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <p>
+              {completedExercises} de {totalExercises} exercícios concluídos
+            </p>
+            <p>{totalSets} séries registradas</p>
+            {durationLabel && <p>Duração: {durationLabel}</p>}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm">
+            {totalSets} séries registradas · {totalExercises} exercícios
+          </p>
+        )}
         <a
           href={`#/plano/${session.strengthPlanId}`}
           className="auth-link mt-4 inline-block text-sm"
         >
-          Consultar a versão do
-          plano
+          Consultar a versão do plano
         </a>
-
-        <ErrorNotice
-          message={action.error}
-        />
+        <ErrorNotice message={action.error} />
       </Panel>
-
       {!session.exercises.length && (
         <Empty>
           Esta sessão não possui
           exercícios.
         </Empty>
       )}
-
       {orderedExercises.map(
         exercise => (
           <div
@@ -1019,7 +927,6 @@ export default function SessionView({
           </div>
         )
       )}
-
       {!finished && (
         <div
           id="finish-session"
@@ -1027,23 +934,27 @@ export default function SessionView({
         >
           <Panel title="Concluir sessão">
             <p className="mb-4 text-sm leading-6 text-muted">
-              Confira suas séries antes
-              de finalizar. Após a
-              conclusão, esta sessão
-              ficará disponível apenas
-              para consulta.
+              {totalExercises === 0
+                ? 'Esta sessão não possui exercícios e não pode ser finalizada.'
+                : hasIncompleteExercises
+                  ? `${completedExercises} de ${totalExercises} exercícios foram concluídos. Se finalizar agora, o treino será registrado como parcial.`
+                  : 'Todos os exercícios foram concluídos. Confira suas séries antes de finalizar o treino.'}
             </p>
-
             <ConfirmButton
-              label="Finalizar treino"
-              message="Finalizar agora? Não será possível adicionar novas séries a esta sessão."
-              disabled={
-                action.busy
+              label={
+                hasIncompleteExercises
+                  ? 'Finalizar como parcial'
+                  : 'Finalizar treino'
               }
+              message={
+                hasIncompleteExercises
+                  ? 'Ainda existem exercícios não concluídos. Deseja finalizar mesmo assim? O treino será registrado como parcial e ficará disponível apenas para consulta.'
+                  : 'Finalizar o treino agora? Após a conclusão, esta sessão ficará disponível apenas para consulta.'
+              }
+              disabled={action.busy || totalExercises === 0}
               onConfirm={() =>
                 void action.run(
-                  () =>
-                    service.finish(id),
+                  () => service.finish(id),
                   saved
                 )
               }
