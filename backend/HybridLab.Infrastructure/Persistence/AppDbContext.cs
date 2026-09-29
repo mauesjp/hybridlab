@@ -12,9 +12,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     }
 
     public DbSet<StudentProfile> Students { get; set; } = null!;
-    public DbSet<CoachProfile> Coaches { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
-    public DbSet<CoachStudentLink> CoachStudentLinks { get; set; } = null!;
     public DbSet<StrengthPlan> StrengthPlans { get; set; } = null!;
     public DbSet<StrengthWorkoutDay> StrengthWorkoutDays { get; set; } = null!;
     public DbSet<PlannedExercise> PlannedExercises { get; set; } = null!;
@@ -34,10 +32,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<WorkoutSet>()
             .Property(set => set.Rpe)
             .HasPrecision(3, 1);
-
-        builder.Entity<CoachProfile>()
-            .HasIndex(coach => coach.CoachCode)
-            .IsUnique();
 
         builder.Entity<BodyWeightEntry>()
             .Property(entry => entry.WeightKg)

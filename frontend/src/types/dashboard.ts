@@ -1,18 +1,6 @@
-export type Role = 'Student' | 'Coach'
-export type Modality = 0 | 1
-export type LinkStatus = 0 | 1 | 2 | 3
+export type Role = 'Student'
 export type WorkoutSessionStatus = 0 | 1 | 2
 
-export interface CoachLink {
-  id: number
-  studentId: number
-  studentName: string
-  coachId: number
-  coachName: string
-  modality: Modality
-  status: LinkStatus
-  requestedAt: string
-}
 export interface PlanSummary {
   id: number
   studentId: number
@@ -78,11 +66,9 @@ export interface SessionSummary {
 }
 export interface SessionDetails extends Omit<SessionSummary, 'dayName'> { exercises: WorkoutExercise[] }
 export type ActiveSession = { hasActiveSession: false } | { hasActiveSession: true; sessionId: number; startedAt: string }
-export interface PlanningAccess { modality: Modality; canManagePlanning: boolean }
 export interface DashboardData {
-  profile: { id: number; displayName: string; role: Role; coachCode: string | null; canCoachStrength: boolean; canCoachRunning: boolean }
+  profile: { id: number; displayName: string; role: Role }
   plans: PlanSummary[]
-  links: CoachLink[]
   recentSessions: SessionSummary[]
   completedSessions: number
   finishedSessions: number

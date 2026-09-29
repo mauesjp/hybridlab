@@ -1,7 +1,5 @@
 ﻿using HybridLab.Application.DTOs.Strength;
-using HybridLab.Application.Interfaces;
 using HybridLab.Domain.Entities;
-using HybridLab.Domain.Enums;
 using HybridLab.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,16 +10,14 @@ namespace HybridLab.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "Student")]
     public class StrengthPlansController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IPlanningAccessService _planningAccessService;
 
-        public StrengthPlansController(AppDbContext context, IPlanningAccessService planningAccessService)
+        public StrengthPlansController(AppDbContext context)
         {
             _context = context;
-            _planningAccessService = planningAccessService;
         }
 
         [Authorize(Roles = "Student")]
@@ -40,14 +36,6 @@ namespace HybridLab.API.Controllers
             if (student == null)
             {
                 return BadRequest("Perfil de aluno não encontrado.");
-            }
-
-            var canManagePlanning = await _planningAccessService
-                .StudentCanManagePlanningAsync(student.Id, TrainingModality.Strength);
-
-            if (!canManagePlanning)
-            {
-                return Forbid();
             }
 
             var plan = new StrengthPlan
@@ -114,7 +102,7 @@ namespace HybridLab.API.Controllers
             return Ok(response);
         }
 
-        [Authorize(Roles = "Student,Coach")]
+        [Authorize(Roles = "Student")]
         [HttpPost("{planId}/days")]
         public async Task<ActionResult> AddDay(int planId, CreateStrengthWorkoutDayDto dto)
         {
@@ -158,7 +146,7 @@ namespace HybridLab.API.Controllers
             });
         }
 
-        [Authorize(Roles = "Student,Coach")]
+        [Authorize(Roles = "Student")]
         [HttpPut("days/{dayId}")]
         public async Task<ActionResult> UpdateDay(int dayId, UpdateStrengthWorkoutDayDto dto)
         {
@@ -207,7 +195,7 @@ namespace HybridLab.API.Controllers
             });
         }
 
-        [Authorize(Roles = "Student,Coach")]
+        [Authorize(Roles = "Student")]
         [HttpPost("days/{dayId}/exercises")]
         public async Task<ActionResult> AddExercise(int dayId, CreatePlannedExerciseDto dto)
         {
@@ -271,7 +259,7 @@ namespace HybridLab.API.Controllers
             });
         }
 
-        [Authorize(Roles = "Student,Coach")]
+        [Authorize(Roles = "Student")]
         [HttpPut("exercises/{exerciseId}")]
         public async Task<ActionResult> UpdateExercise(int exerciseId, UpdatePlannedExerciseDto dto)
         {
@@ -340,7 +328,7 @@ namespace HybridLab.API.Controllers
             });
         }
 
-        [Authorize(Roles = "Student,Coach")]
+        [Authorize(Roles = "Student")]
         [HttpDelete("exercises/{exerciseId}")]
         public async Task<ActionResult> DeleteExercise(int exerciseId)
         {
@@ -391,7 +379,7 @@ namespace HybridLab.API.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles = "Student,Coach")]
+        [Authorize(Roles = "Student")]
         [HttpDelete("days/{dayId}")]
         public async Task<ActionResult> DeleteDay(int dayId)
         {
@@ -513,82 +501,7 @@ namespace HybridLab.API.Controllers
             return Ok(response);
         }
 
-        [Authorize(Roles = "Coach")]
-        [HttpPost("students/{studentId}")]
-        public async Task<ActionResult<StrengthPlanResponseDto>> CreateForStudent(int studentId, CreateStrengthPlanDto dto)
-        {
-            var userId =
-                User.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? User.FindFirstValue("sub");
-
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                return Unauthorized();
-            }
-
-            var coach = await _context.Coaches
-                .FirstOrDefaultAsync(coach => coach.UserId == userId);
-
-            if (coach == null)
-            {
-                return BadRequest("Perfil de professor não encontrado.");
-            }
-
-            var studentExists = await _context.Students
-                .AnyAsync(student => student.Id == studentId);
-
-            if (!studentExists)
-            {
-                return NotFound("Aluno não encontrado.");
-            }
-
-            var canManage =
-                await _planningAccessService.CoachCanManageStudentPlanningAsync(
-                    coach.Id,
-                    studentId,
-                    TrainingModality.Strength
-                );
-
-            if (!canManage)
-            {
-                return Forbid();
-            }
-
-            var plan = new StrengthPlan
-            {
-                StudentId = studentId,
-                Name = dto.Name,
-                VersionNumber = 1,
-                PreviousVersionId = null,
-                IsPublished = false,
-                IsActive = false,
-                CreatedAt = DateTime.UtcNow,
-                PublishedAt = null
-            };
-
-            _context.StrengthPlans.Add(plan);
-            await _context.SaveChangesAsync();
-
-            var response = new StrengthPlanResponseDto
-            {
-                Id = plan.Id,
-                StudentId = plan.StudentId,
-                Name = plan.Name,
-                IsActive = plan.IsActive,
-                CreatedAt = plan.CreatedAt,
-                VersionNumber = plan.VersionNumber,
-                IsPublished = plan.IsPublished,
-                PublishedAt = plan.PublishedAt
-            };
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = plan.Id },
-                response
-            );
-        }
-
-        [Authorize(Roles = "Student,Coach")]
+        [Authorize(Roles = "Student")]
         [HttpPut("{id}/publish")]
         public async Task<ActionResult> Publish(int id)
         {
@@ -642,7 +555,7 @@ namespace HybridLab.API.Controllers
             });
         }
 
-        [Authorize(Roles = "Student,Coach")]
+        [Authorize(Roles = "Student")]
         [HttpPost("{id}/new-version")]
         public async Task<ActionResult<StrengthPlanResponseDto>> CreateNewVersion(int id)
         {
@@ -825,7 +738,7 @@ namespace HybridLab.API.Controllers
             return Ok(response);
         }
 
-        [Authorize(Roles = "Student,Coach")]
+        [Authorize(Roles = "Student")]
         [HttpDelete("{id:int}")]
         public async Task<ActionResult> DeletePlan(int id)
         {
@@ -890,83 +803,15 @@ namespace HybridLab.API.Controllers
             return NoContent();
         }
 
-        private async Task<bool> CanManageStudentStrengthPlanningAsync(int studentId)
-        {
-            var userId =
-                User.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? User.FindFirstValue("sub");
-
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                return false;
-            }
-
-            var student = await _context.Students
-                .FirstOrDefaultAsync(student => student.UserId == userId);
-
-            if (student != null)
-            {
-                if (student.Id != studentId)
-                {
-                    return false;
-                }
-
-                return await _planningAccessService
-                    .StudentCanManagePlanningAsync(
-                        student.Id,
-                        TrainingModality.Strength
-                    );
-            }
-
-            var coach = await _context.Coaches
-                .FirstOrDefaultAsync(coach => coach.UserId == userId);
-
-            if (coach == null)
-            {
-                return false;
-            }
-
-            return await _planningAccessService
-                .CoachCanManageStudentPlanningAsync(
-                    coach.Id,
-                    studentId,
-                    TrainingModality.Strength
-                );
-        }
+        private Task<bool> CanManageStudentStrengthPlanningAsync(int studentId)
+            => CanViewStudentStrengthPlanAsync(studentId);
 
         private async Task<bool> CanViewStudentStrengthPlanAsync(int studentId)
         {
-            var userId =
-                User.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? User.FindFirstValue("sub");
-
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                return false;
-            }
-
-            var student = await _context.Students
-                .FirstOrDefaultAsync(student => student.UserId == userId);
-
-            if (student != null)
-            {
-                return student.Id == studentId;
-            }
-
-            var coach = await _context.Coaches
-                .FirstOrDefaultAsync(coach => coach.UserId == userId);
-
-            if (coach == null)
-            {
-                return false;
-            }
-
-            return await _planningAccessService
-                .CoachCanManageStudentPlanningAsync(
-                    coach.Id,
-                    studentId,
-                    TrainingModality.Strength
-                );
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            if (string.IsNullOrWhiteSpace(userId)) return false;
+            return await _context.Students.AnyAsync(student =>
+                student.Id == studentId && student.UserId == userId);
         }
     }
 }

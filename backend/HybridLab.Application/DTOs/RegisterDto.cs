@@ -22,12 +22,9 @@ namespace HybridLab.Application.DTOs.Auth
         public string Password { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "O tipo de conta é obrigatório.")]
-        public string AccountType { get; set; } = string.Empty;
+        public string AccountType { get; set; } = "Student";
 
         public DateTime? BirthDate { get; set; }
 
-        public bool CanCoachStrength { get; set; }
-
-        public bool CanCoachRunning { get; set; }
     }
 }

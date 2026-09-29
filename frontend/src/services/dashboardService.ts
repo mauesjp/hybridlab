@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { ActiveSession, BodyWeightEntry, BodyWeightInput, BodyWeightGoal, CoachLink, DashboardData, DayInput, ExerciseInput, PreviousExercisePerformance, Modality, PlanDetails, PlanSummary, PlanningAccess, SessionDetails, SetInput, WorkoutDay, PlannedExercise, WorkoutSet } from '../types/dashboard'
+import type { ActiveSession, BodyWeightEntry, BodyWeightInput, BodyWeightGoal, DashboardData, DayInput, ExerciseInput, PreviousExercisePerformance, PlanDetails, PlanSummary, SessionDetails, SetInput, WorkoutDay, PlannedExercise, WorkoutSet } from '../types/dashboard'
 
 export const dashboardService = {
   me: () => api<string>('/Auth/me'),
@@ -10,15 +10,10 @@ export const dashboardService = {
   deleteBodyWeight: (id: number) => api(`/BodyWeight/${id}`, 'DELETE'),
   updateBodyWeightGoal: (goalWeightKg: number | null) => api<BodyWeightGoal>('/BodyWeight/goal','PUT',{ goalWeightKg }),
   dashboard: () => api<DashboardData>('/Dashboard'),
-  access: (modality: Modality) => api<PlanningAccess>(`/PlanningAccess/${modality}`),
-  pending: () => api<CoachLink[]>('/CoachLinks/pending'),
-  requestLink: (coachCode: string, modality: Modality) => api('/CoachLinks/request', 'POST', { coachCode, modality }),
-  respondLink: (id: number, accept: boolean) => api(`/CoachLinks/${id}/respond`, 'PUT', { accept }),
-  unlink: (id: number) => api(`/CoachLinks/${id}/unlink`, 'PUT'),
   plan: (id: number) => api<PlanSummary>(`/StrengthPlans/${id}`),
   fullPlan: (id: number) => api<PlanDetails>(`/StrengthPlans/${id}/full`),
   versions: (id: number) => api<PlanSummary[]>(`/StrengthPlans/${id}/versions`),
-  createPlan: (name: string, studentId?: number) => api<PlanSummary>(studentId === undefined ? '/StrengthPlans' : `/StrengthPlans/students/${studentId}`, 'POST', { name }),
+  createPlan: (name: string) => api<PlanSummary>('/StrengthPlans', 'POST', { name }),
   publish: (id: number) => api(`/StrengthPlans/${id}/publish`, 'PUT'),
   newVersion: (id: number) => api<PlanSummary>(`/StrengthPlans/${id}/new-version`, 'POST'),
   deletePlan: (id: number) => api(`/StrengthPlans/${id}`, 'DELETE'),

@@ -17,13 +17,11 @@ export type RegisterRequest = {
   username: string;
   email: string;
   password: string;
-  accountType: "Student" | "Coach";
-  birthDate: string | null;
-  canCoachStrength: boolean;
-  canCoachRunning: boolean;
+  accountType: "Student";
+  birthDate: string;
 };
 
 export type RegisterResponse = {
   message: string;
-  accountType: "Student" | "Coach";
+  accountType: "Student";
 };

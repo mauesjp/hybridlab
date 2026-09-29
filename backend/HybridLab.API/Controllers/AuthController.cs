@@ -20,14 +20,12 @@ namespace HybridLab.API.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ITokenService _tokenService;
         private readonly AppDbContext _context;
-        private readonly ICoachCodeGenerator _coachCodeGenerator;
 
-        public AuthController(UserManager<ApplicationUser> userManager, ITokenService tokenService, AppDbContext context, ICoachCodeGenerator coachCodeGenerator)
+        public AuthController(UserManager<ApplicationUser> userManager, ITokenService tokenService, AppDbContext context)
         {
             _userManager = userManager;
             _tokenService = tokenService;
             _context = context;
-            _coachCodeGenerator = coachCodeGenerator;
         }
 
         [HttpPost("login")]
@@ -56,14 +54,15 @@ namespace HybridLab.API.Controllers
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            var userRole = roles.FirstOrDefault() ?? string.Empty;
+            if (!roles.Contains("Student")) return Unauthorized();
+            var userRole = "Student";
 
             var accessToken = _tokenService
                 .GenerateAccessToken
                 (user.Id,
                 user.UserName ?? string.Empty,
                 user.Email ?? string.Empty,
-                roles);
+                new[] { "Student" });
 
             var refreshTokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
@@ -109,13 +108,14 @@ namespace HybridLab.API.Controllers
             }
 
             var roles = await _userManager.GetRolesAsync(user);
+            if (!roles.Contains("Student")) return Unauthorized();
 
             var accessToken = _tokenService
                 .GenerateAccessToken
                 (user.Id,
                 user.UserName ?? string.Empty,
                 user.Email ?? string.Empty,
-                roles);
+                new[] { "Student" });
 
             refreshToken.RevokedAt = DateTime.UtcNow;
 
@@ -145,23 +145,14 @@ namespace HybridLab.API.Controllers
         {
             var accountType = dto.AccountType.Trim();
 
-            if (accountType != "Student" && accountType != "Coach")
+            if (accountType != "Student")
             {
-                return BadRequest("O tipo de conta deve ser Student ou Coach.");
+                return BadRequest("O tipo de conta deve ser Student.");
             }
 
-            if (accountType == "Student" && dto.BirthDate == null)
+            if (dto.BirthDate == null)
             {
-                return BadRequest("A data de nascimento é obrigatória para alunos.");
-            }
-
-            if (accountType == "Coach" &&
-                !dto.CanCoachStrength &&
-                !dto.CanCoachRunning)
-            {
-                return BadRequest(
-                    "O treinador deve atuar em pelo menos uma modalidade."
-                );
+                return BadRequest("A data de nascimento é obrigatória.");
             }
 
             var existingUsername = await _userManager
@@ -216,33 +207,15 @@ namespace HybridLab.API.Controllers
                 );
             }
 
-            if (accountType == "Student")
+            var student = new StudentProfile
             {
-                var student = new StudentProfile
-                {
-                    UserId = user.Id,
-                    DisplayName = dto.DisplayName.Trim(),
-                    BirthDate = dto.BirthDate!.Value,
-                    CreatedAt = DateTime.UtcNow
-                };
+                UserId = user.Id,
+                DisplayName = dto.DisplayName.Trim(),
+                BirthDate = dto.BirthDate!.Value,
+                CreatedAt = DateTime.UtcNow
+            };
 
-                _context.Students.Add(student);
-            }
-
-            if (accountType == "Coach")
-            {
-                var coach = new CoachProfile
-                {
-                    UserId = user.Id,
-                    DisplayName = dto.DisplayName.Trim(),
-                    CoachCode = await _coachCodeGenerator.GenerateAsync(),
-                    CanCoachStrength = dto.CanCoachStrength,
-                    CanCoachRunning = dto.CanCoachRunning,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.Coaches.Add(coach);
-            }
+            _context.Students.Add(student);
 
             try
             {
@@ -289,30 +262,17 @@ namespace HybridLab.API.Controllers
             }
 
             var roles = await _userManager.GetRolesAsync(user);
-            var role = roles.FirstOrDefault() ?? string.Empty;
+            if (!roles.Contains("Student")) return Unauthorized();
+            var role = "Student";
 
             string displayName = user.UserName ?? string.Empty;
 
-            if (role == "Student")
+            var student = await _context.Students
+                .FirstOrDefaultAsync(student => student.UserId == user.Id);
+
+            if (student != null)
             {
-                var student = await _context.Students
-                    .FirstOrDefaultAsync(student => student.UserId == user.Id);
-
-                if (student != null)
-                {
-                    displayName = student.DisplayName;
-                }
-            }
-
-            if (role == "Coach")
-            {
-                var coach = await _context.Coaches
-                    .FirstOrDefaultAsync(coach => coach.UserId == user.Id);
-
-                if (coach != null)
-                {
-                    displayName = coach.DisplayName;
-                }
+                displayName = student.DisplayName;
             }
 
             return Ok(new

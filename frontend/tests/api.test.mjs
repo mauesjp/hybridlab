@@ -6,7 +6,7 @@ import ts from 'typescript'
 // Executa os serviços reais com respostas controladas, sem gravar dados no backend.
 const compile = (file) => ts.transpileModule(readFileSync(new URL(file, import.meta.url), 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2023, module: ts.ModuleKind.ESNext } }).outputText
 const moduleUrl = (source) => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`
-const apiUrl = moduleUrl(compile('../src/services/api.ts'))
+const apiUrl = moduleUrl(compile('../src/services/api.ts').replace('import.meta.env.VITE_API_URL', JSON.stringify('https://example.test/api')))
 const { api, clearSession } = await import(apiUrl)
 const { dashboardService: service } = await import(moduleUrl(compile('../src/services/dashboardService.ts').replace("'./api'", JSON.stringify(apiUrl))))
 const originalFetch = globalThis.fetch
@@ -69,15 +69,11 @@ test('ações enviam os métodos, rotas e campos esperados pelo backend', async 
   const calls = []
   globalThis.fetch = async (url, init) => { calls.push([url.replace(/^.*\/api/, ''), init.method, init.body ? JSON.parse(init.body) : undefined]); return json({ id: 1 }) }
   await service.createPlan('Plano A')
-  await service.createPlan('Plano B', 7)
-  await service.requestLink('COACH001', 0)
-  await service.respondLink(2, false)
   await service.start(9)
   await service.addSet(3, { weight: 0, reps: 8, rir: 0, rpe: null })
   await service.finish(4)
   assert.deepEqual(calls, [
-    ['/StrengthPlans', 'POST', { name: 'Plano A' }], ['/StrengthPlans/students/7', 'POST', { name: 'Plano B' }],
-    ['/CoachLinks/request', 'POST', { coachCode: 'COACH001', modality: 0 }], ['/CoachLinks/2/respond', 'PUT', { accept: false }],
+    ['/StrengthPlans', 'POST', { name: 'Plano A' }],
     ['/WorkoutSessions/days/9/start', 'POST', undefined], ['/WorkoutSessions/exercises/3/sets', 'POST', { weight: 0, reps: 8, rir: 0, rpe: null }],
     ['/WorkoutSessions/4/finish', 'PUT', undefined],
   ])

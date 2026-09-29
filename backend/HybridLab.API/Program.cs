@@ -46,8 +46,6 @@ builder.Services
     .AddEntityFrameworkStores<AppDbContext>();
 
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<ICoachCodeGenerator, CoachCodeGenerator>();
-builder.Services.AddScoped<IPlanningAccessService, PlanningAccessService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -144,8 +142,7 @@ using (var scope = app.Services.CreateScope())
 
     string[] roles =
     {
-        "Student",
-        "Coach"
+        "Student"
     };
 
     foreach (var role in roles)
@@ -211,58 +208,6 @@ using (var scope = app.Services.CreateScope())
 
             dbContext.Students.Add(
                 studentProfile
-            );
-        }
-
-        var testCoach =
-            await userManager.FindByNameAsync(
-                "testcoach"
-            );
-
-        if (testCoach == null)
-        {
-            testCoach = new ApplicationUser
-            {
-                UserName = "testcoach",
-                Email = "testcoach@hybridlab.local",
-                EmailConfirmed = true
-            };
-
-            var result =
-                await userManager.CreateAsync(
-                    testCoach,
-                    "Test@123456"
-                );
-
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(
-                    testCoach,
-                    "Coach"
-                );
-            }
-        }
-
-        var coachProfile =
-            await dbContext.Coaches
-                .FirstOrDefaultAsync(coach =>
-                    coach.UserId == testCoach.Id
-                );
-
-        if (coachProfile == null)
-        {
-            coachProfile = new CoachProfile
-            {
-                UserId = testCoach.Id,
-                DisplayName = "Professor Teste",
-                CoachCode = "COACH001",
-                CanCoachStrength = true,
-                CanCoachRunning = true,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            dbContext.Coaches.Add(
-                coachProfile
             );
         }
 

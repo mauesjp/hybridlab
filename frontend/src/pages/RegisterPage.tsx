@@ -2,20 +2,13 @@ import { useState } from 'react'
 import AuthLayout from '../components/AuthLayout'
 import { register } from '../services/authService'
 
-type AccountType = 'Student' | 'Coach'
-
 export default function RegisterPage() {
   const [displayName, setDisplayName] = useState('')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  const [accountType, setAccountType] = useState<AccountType>('Student')
-
   const [birthDate, setBirthDate] = useState('')
-
-  const [canCoachStrength, setCanCoachStrength] = useState(false)
-  const [canCoachRunning, setCanCoachRunning] = useState(false)
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -27,17 +20,8 @@ export default function RegisterPage() {
     setError('')
     setSuccess('')
 
-    if (accountType === 'Student' && !birthDate) {
+    if (!birthDate) {
       setError('Informe sua data de nascimento.')
-      return
-    }
-
-    if (
-      accountType === 'Coach' &&
-      !canCoachStrength &&
-      !canCoachRunning
-    ) {
-      setError('Selecione pelo menos uma modalidade.')
       return
     }
 
@@ -49,22 +33,8 @@ export default function RegisterPage() {
         username,
         email,
         password,
-        accountType,
-
-        birthDate:
-          accountType === 'Student'
-            ? birthDate
-            : null,
-
-        canCoachStrength:
-          accountType === 'Coach'
-            ? canCoachStrength
-            : false,
-
-        canCoachRunning:
-          accountType === 'Coach'
-            ? canCoachRunning
-            : false
+        accountType: 'Student',
+        birthDate
       })
 
       setSuccess(response.message)
@@ -190,100 +160,24 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <p className="auth-label">
-            Tipo de conta
-          </p>
+          <label
+            htmlFor="register-birth-date"
+            className="auth-label"
+          >
+            Data de nascimento
+          </label>
 
-          <div className="mt-2 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                setAccountType('Student')
-              }
-              className={
-                accountType === 'Student'
-                  ? 'auth-primary'
-                  : 'auth-secondary'
-              }
-            >
-              Aluno
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                setAccountType('Coach')
-              }
-              className={
-                accountType === 'Coach'
-                  ? 'auth-primary'
-                  : 'auth-secondary'
-              }
-            >
-              Treinador
-            </button>
-          </div>
+          <input
+            id="register-birth-date"
+            className="auth-input"
+            type="date"
+            value={birthDate}
+            onChange={(event) =>
+              setBirthDate(event.target.value)
+            }
+            required
+          />
         </div>
-
-        {accountType === 'Student' && (
-          <div>
-            <label
-              htmlFor="register-birth-date"
-              className="auth-label"
-            >
-              Data de nascimento
-            </label>
-
-            <input
-              id="register-birth-date"
-              className="auth-input"
-              type="date"
-              value={birthDate}
-              onChange={(event) =>
-                setBirthDate(event.target.value)
-              }
-              required
-            />
-          </div>
-        )}
-
-        {accountType === 'Coach' && (
-          <div>
-            <p className="auth-label">
-              Modalidades
-            </p>
-
-            <div className="mt-3 space-y-3">
-              <label className="flex items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={canCoachStrength}
-                  onChange={(event) =>
-                    setCanCoachStrength(
-                      event.target.checked
-                    )
-                  }
-                />
-
-                Musculação
-              </label>
-
-              <label className="flex items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={canCoachRunning}
-                  onChange={(event) =>
-                    setCanCoachRunning(
-                      event.target.checked
-                    )
-                  }
-                />
-
-                Corrida
-              </label>
-            </div>
-          </div>
-        )}
 
         {error && (
           <div
