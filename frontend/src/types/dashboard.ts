@@ -90,3 +90,24 @@ export interface BodyWeightInput {
 export interface BodyWeightGoal {
   goalWeightKg: number | null
 }
+
+export interface StrengthExercisePerformance {
+  sessionId: number
+  startedAt: string
+  weight: number | null
+  reps: number
+}
+
+export interface StrengthExerciseAnalytics {
+  name: string
+  maxWeight: number | null
+  history: StrengthExercisePerformance[]
+}
+
+export interface StrengthAnalyticsData {
+  workoutsLast30Days: number
+  workoutsLast7Days: number
+  setsLast30Days: number
+  volumeLast30Days: number
+  exercises: StrengthExerciseAnalytics[]
+}
