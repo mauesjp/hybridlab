@@ -1,115 +1,84 @@
-import {
-  useCallback,
-  useMemo,
-  useState
-} from 'react'
+import { useCallback, useMemo, useState } from "react";
 
-import { useRemote } from '../../hooks/useRemote'
-import { dashboardService as service } from '../../services/dashboardService'
-import type {
-  StrengthExercisePerformance
-} from '../../types/dashboard'
+import { useRemote } from "../../hooks/useRemote";
+import { dashboardService as service } from "../../services/dashboardService";
+import type { StrengthExercisePerformance } from "../../types/dashboard";
 
-import {
-  Empty,
-  ErrorNotice,
-  Loading,
-  Panel
-} from './UI'
+import { Empty, ErrorNotice, Loading, Panel } from "./UI";
 
 function numberValue(value: number) {
-  return value.toLocaleString('pt-BR', {
-    maximumFractionDigits: 1
-  })
+  return value.toLocaleString("pt-BR", {
+    maximumFractionDigits: 1,
+  });
 }
 
 function dateValue(value: string) {
-  return new Date(value).toLocaleDateString(
-    'pt-BR',
-    {
-      day: '2-digit',
-      month: '2-digit'
-    }
-  )
+  return new Date(value).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
 }
 
 function EvolutionChart({
-  history
+  history,
 }: {
-  history: StrengthExercisePerformance[]
+  history: StrengthExercisePerformance[];
 }) {
-  const useWeight = history.some(
-    point => point.weight !== null
-  )
+  const useWeight = history.some((point) => point.weight !== null);
 
-  const pointsData = history.map(point => ({
-    ...point,
-    value: useWeight
-      ? point.weight ?? 0
-      : point.reps
-  }))
+  const pointsData = useWeight
+    ? history
+        .filter((point) => point.weight !== null)
+        .map((point) => ({
+          ...point,
+          value: point.weight as number,
+        }))
+    : history.map((point) => ({
+        ...point,
+        value: point.reps,
+      }));
 
   if (pointsData.length < 2) {
     return (
       <Empty>
-        São necessários pelo menos dois treinos desse exercício para mostrar a evolução.
+        São necessários pelo menos dois treinos desse exercício para mostrar a
+        evolução.
       </Empty>
-    )
+    );
   }
 
-  const width = 720
-  const height = 220
-  const paddingX = 36
-  const paddingY = 26
+  const width = 720;
+  const height = 220;
+  const paddingX = 36;
+  const paddingY = 26;
 
-  const values = pointsData.map(
-    point => point.value
-  )
+  const values = pointsData.map((point) => point.value);
 
-  const min = Math.min(...values)
-  const max = Math.max(...values)
+  const min = Math.min(...values);
+  const max = Math.max(...values);
 
-  const range =
-    max - min === 0
-      ? 1
-      : max - min
+  const range = max - min === 0 ? 1 : max - min;
 
-  const drawableWidth =
-    width - paddingX * 2
+  const drawableWidth = width - paddingX * 2;
 
-  const drawableHeight =
-    height - paddingY * 2
+  const drawableHeight = height - paddingY * 2;
 
-  const chartPoints = pointsData.map(
-    (point, index) => {
-      const x =
-        paddingX +
-        (
-          index /
-          (pointsData.length - 1)
-        ) *
-          drawableWidth
+  const chartPoints = pointsData.map((point, index) => {
+    const x = paddingX + (index / (pointsData.length - 1)) * drawableWidth;
 
-      const y =
-        height -
-        paddingY -
-        (
-          (point.value - min) /
-          range
-        ) *
-          drawableHeight
+    const y =
+      height - paddingY - ((point.value - min) / range) * drawableHeight;
 
-      return {
-        ...point,
-        x,
-        y
-      }
-    }
-  )
+    return {
+      ...point,
+      x,
+      y,
+    };
+  });
 
   const polyline = chartPoints
-    .map(point => `${point.x},${point.y}`)
-    .join(' ')
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
 
   return (
     <div className="overflow-x-auto">
@@ -137,14 +106,9 @@ function EvolutionChart({
           strokeLinecap="round"
         />
 
-        {chartPoints.map(point => (
+        {chartPoints.map((point) => (
           <g key={point.sessionId}>
-            <circle
-              cx={point.x}
-              cy={point.y}
-              r="5"
-              fill="currentColor"
-            />
+            <circle cx={point.x} cy={point.y} r="5" fill="currentColor" />
 
             <text
               x={point.x}
@@ -161,63 +125,46 @@ function EvolutionChart({
       </svg>
 
       <p className="mt-2 text-xs text-muted">
-        Evolução por{' '}
-        {useWeight ? 'carga (kg)' : 'repetições'}.
+        Evolução por {useWeight ? "carga (kg)" : "repetições"}.
       </p>
     </div>
-  )
+  );
 }
 
 export default function StrengthAnalyticsView() {
-  const [selectedName, setSelectedName] =
-    useState('')
+  const [selectedName, setSelectedName] = useState("");
 
-  const load = useCallback(
-    () => service.strengthAnalytics(),
-    []
-  )
+  const load = useCallback(() => service.strengthAnalytics(), []);
 
-  const remote = useRemote(load)
+  const remote = useRemote(load);
 
-  const data = remote.data
+  const data = remote.data;
 
   const selectedExercise = useMemo(() => {
     if (!data?.exercises.length) {
-      return null
+      return null;
     }
 
     return (
-      data.exercises.find(
-        exercise =>
-          exercise.name === selectedName
-      ) ??
+      data.exercises.find((exercise) => exercise.name === selectedName) ??
       data.exercises[0]
-    )
-  }, [data, selectedName])
+    );
+  }, [data, selectedName]);
 
   if (!data && remote.loading) {
-    return <Loading />
+    return <Loading />;
   }
 
   if (!data) {
-    return (
-      <ErrorNotice
-        message={remote.error}
-        retry={remote.reload}
-      />
-    )
+    return <ErrorNotice message={remote.error} retry={remote.reload} />;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="dash-eyebrow">
-          Analytics
-        </p>
+        <p className="dash-eyebrow">Analytics</p>
 
-        <h2 className="mt-2 text-2xl font-semibold">
-          Sua evolução
-        </h2>
+        <h2 className="mt-2 text-2xl font-semibold">Sua evolução</h2>
 
         <p className="mt-2 text-sm text-muted">
           Acompanhe frequência, volume e progressão dos seus exercícios.
@@ -225,17 +172,12 @@ export default function StrengthAnalyticsView() {
       </div>
 
       {remote.error && (
-        <ErrorNotice
-          message={remote.error}
-          retry={remote.reload}
-        />
+        <ErrorNotice message={remote.error} retry={remote.reload} />
       )}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="dash-panel">
-          <p className="text-sm text-muted">
-            Treinos · 30 dias
-          </p>
+          <p className="text-sm text-muted">Treinos · 30 dias</p>
 
           <p className="mt-4 text-3xl font-semibold">
             {data.workoutsLast30Days}
@@ -243,9 +185,7 @@ export default function StrengthAnalyticsView() {
         </div>
 
         <div className="dash-panel">
-          <p className="text-sm text-muted">
-            Últimos 7 dias
-          </p>
+          <p className="text-sm text-muted">Últimos 7 dias</p>
 
           <p className="mt-4 text-3xl font-semibold">
             {data.workoutsLast7Days}
@@ -253,25 +193,16 @@ export default function StrengthAnalyticsView() {
         </div>
 
         <div className="dash-panel">
-          <p className="text-sm text-muted">
-            Séries · 30 dias
-          </p>
+          <p className="text-sm text-muted">Séries · 30 dias</p>
 
-          <p className="mt-4 text-3xl font-semibold">
-            {data.setsLast30Days}
-          </p>
+          <p className="mt-4 text-3xl font-semibold">{data.setsLast30Days}</p>
         </div>
 
         <div className="dash-panel">
-          <p className="text-sm text-muted">
-            Volume · 30 dias
-          </p>
+          <p className="text-sm text-muted">Volume · 30 dias</p>
 
           <p className="mt-4 text-3xl font-semibold">
-            {numberValue(
-              data.volumeLast30Days
-            )}{' '}
-            kg
+            {numberValue(data.volumeLast30Days)} kg
           </p>
         </div>
       </div>
@@ -284,95 +215,115 @@ export default function StrengthAnalyticsView() {
         ) : (
           <div className="space-y-6">
             <label className="block text-sm">
-              <span className="font-medium">
-                Exercício
-              </span>
+              <span className="font-medium">Exercício</span>
 
               <select
-                value={
-                  selectedExercise?.name ?? ''
-                }
-                onChange={event =>
-                  setSelectedName(
-                    event.target.value
-                  )
-                }
+                value={selectedExercise?.name ?? ""}
+                onChange={(event) => setSelectedName(event.target.value)}
                 className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 outline-none"
               >
-                {data.exercises.map(
-                  exercise => (
-                    <option
-                      key={exercise.name}
-                      value={exercise.name}
-                    >
-                      {exercise.name}
-                    </option>
-                  )
-                )}
+                {data.exercises.map((exercise) => (
+                  <option key={exercise.name} value={exercise.name}>
+                    {exercise.name}
+                  </option>
+                ))}
               </select>
             </label>
 
             {selectedExercise && (
               <>
-                <div className="rounded-xl border border-border p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-muted">
-                    Maior carga registrada
-                  </p>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-xl border border-border p-4">
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted">
+                      Maior carga
+                    </p>
 
-                  <p className="mt-3 text-3xl font-semibold">
-                    {selectedExercise.maxWeight ===
-                    null
-                      ? '—'
-                      : `${numberValue(
-                          selectedExercise.maxWeight
-                        )} kg`}
-                  </p>
+                    <p className="mt-3 text-2xl font-semibold">
+                      {selectedExercise.maxWeight === null
+                        ? "—"
+                        : `${numberValue(selectedExercise.maxWeight)} kg`}
+                    </p>
+
+                    {selectedExercise.maxWeightReps !== null && (
+                      <p className="mt-2 text-xs text-muted">
+                        {selectedExercise.maxWeightReps} reps
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-border p-4">
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted">
+                      Mais repetições
+                    </p>
+
+                    <p className="mt-3 text-2xl font-semibold">
+                      {selectedExercise.bestReps} reps
+                    </p>
+
+                    <p className="mt-2 text-xs text-muted">
+                      {selectedExercise.bestRepsWeight === null
+                        ? "Sem carga registrada"
+                        : `${numberValue(selectedExercise.bestRepsWeight)} kg`}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border p-4">
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted">
+                      Volume · 30 dias
+                    </p>
+
+                    <p className="mt-3 text-2xl font-semibold">
+                      {numberValue(selectedExercise.volumeLast30Days)} kg
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border p-4">
+                    <p className="text-xs uppercase tracking-[0.12em] text-muted">
+                      1RM estimado
+                    </p>
+
+                    <p className="mt-3 text-2xl font-semibold">
+                      {selectedExercise.estimatedOneRepMax === null
+                        ? "—"
+                        : `${numberValue(
+                            selectedExercise.estimatedOneRepMax,
+                          )} kg`}
+                    </p>
+
+                    <p className="mt-2 text-xs text-muted">
+                      Estimativa pelas séries de até 12 reps.
+                    </p>
+                  </div>
                 </div>
 
-                <EvolutionChart
-                  history={
-                    selectedExercise.history
-                  }
-                />
+                <EvolutionChart history={selectedExercise.history} />
 
                 <div>
-                  <h3 className="font-semibold">
-                    Últimas performances
-                  </h3>
+                  <h3 className="font-semibold">Últimas performances</h3>
 
-                  {!selectedExercise.history
-                    .length ? (
-                    <Empty>
-                      Nenhum registro disponível.
-                    </Empty>
+                  {!selectedExercise.history.length ? (
+                    <Empty>Nenhum registro disponível.</Empty>
                   ) : (
                     <div className="mt-3 divide-y divide-border">
-                      {[
-                        ...selectedExercise.history
-                      ]
+                      {[...selectedExercise.history]
                         .reverse()
                         .slice(0, 8)
-                        .map(performance => (
+                        .map((performance) => (
                           <div
-                            key={
-                              performance.sessionId
-                            }
+                            key={performance.sessionId}
                             className="flex items-center justify-between gap-4 py-3"
                           >
                             <p className="text-sm text-muted">
                               {new Date(
-                                performance.startedAt
-                              ).toLocaleDateString(
-                                'pt-BR'
-                              )}
+                                performance.startedAt,
+                              ).toLocaleDateString("pt-BR")}
                             </p>
 
                             <p className="font-medium">
-                              {performance.weight ===
-                              null
+                              {performance.weight === null
                                 ? `${performance.reps} reps`
                                 : `${numberValue(
-                                    performance.weight
+                                    performance.weight,
                                   )} kg × ${performance.reps}`}
                             </p>
                           </div>
@@ -386,5 +337,5 @@ export default function StrengthAnalyticsView() {
         )}
       </Panel>
     </div>
-  )
+  );
 }

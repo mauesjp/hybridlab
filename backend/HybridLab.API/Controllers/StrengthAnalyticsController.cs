@@ -82,15 +82,21 @@ public class StrengthAnalyticsController(AppDbContext context) : ControllerBase
             .Where(row => row.StartedAt >= last30Days)
             .ToList();
 
-        var setsLast30Days = rowsLast30Days.Count;
+        var setsLast30Days =
+            rowsLast30Days.Count;
 
-        var volumeLast30Days = rowsLast30Days.Sum(
-            row => (row.Weight ?? 0m) * row.Reps
-        );
+        var volumeLast30Days =
+            rowsLast30Days.Sum(
+                row =>
+                    (row.Weight ?? 0m) *
+                    row.Reps
+            );
 
         var exercises = rows
             .Where(row =>
-                !string.IsNullOrWhiteSpace(row.ExerciseName)
+                !string.IsNullOrWhiteSpace(
+                    row.ExerciseName
+                )
             )
             .GroupBy(
                 row => row.ExerciseName.Trim(),
@@ -98,15 +104,57 @@ public class StrengthAnalyticsController(AppDbContext context) : ControllerBase
             )
             .Select(group =>
             {
-                var weights = group
-                    .Where(row => row.Weight.HasValue)
-                    .Select(row => row.Weight!.Value)
+                var weightedSets = group
+                    .Where(row =>
+                        row.Weight.HasValue &&
+                        row.Weight.Value > 0
+                    )
                     .ToList();
 
-                decimal? maxWeight =
-                    weights.Count > 0
-                        ? weights.Max()
-                        : null;
+                var maxWeightSet = weightedSets
+                    .OrderByDescending(row =>
+                        row.Weight
+                    )
+                    .ThenByDescending(row =>
+                        row.Reps
+                    )
+                    .FirstOrDefault();
+
+                var bestRepsSet = group
+                    .OrderByDescending(row =>
+                        row.Reps
+                    )
+                    .ThenByDescending(row =>
+                        row.Weight ?? 0m
+                    )
+                    .First();
+
+                var exerciseVolumeLast30Days =
+                    group
+                        .Where(row =>
+                            row.StartedAt >=
+                            last30Days
+                        )
+                        .Sum(row =>
+                            (row.Weight ?? 0m) *
+                            row.Reps
+                        );
+
+                var estimatedOneRepMax =
+                    weightedSets
+                        .Where(row =>
+                            row.Reps > 0 &&
+                            row.Reps <= 12
+                        )
+                        .Select(row =>
+                            row.Weight!.Value *
+                            (
+                                1m +
+                                row.Reps / 30m
+                            )
+                        )
+                        .DefaultIfEmpty(0m)
+                        .Max();
 
                 var history = group
                     .GroupBy(row => new
@@ -146,20 +194,54 @@ public class StrengthAnalyticsController(AppDbContext context) : ControllerBase
                 return new
                 {
                     Name = group.Key,
-                    MaxWeight = maxWeight,
+
+                    MaxWeight =
+                        maxWeightSet?.Weight,
+
+                    MaxWeightReps =
+                        maxWeightSet?.Reps,
+
+                    BestReps =
+                        bestRepsSet.Reps,
+
+                    BestRepsWeight =
+                        bestRepsSet.Weight,
+
+                    VolumeLast30Days =
+                        exerciseVolumeLast30Days,
+
+                    EstimatedOneRepMax =
+                        estimatedOneRepMax > 0
+                            ? Math.Round(
+                                estimatedOneRepMax,
+                                1
+                            )
+                            : (decimal?)null,
+
                     History = history
                 };
             })
-            .OrderBy(exercise => exercise.Name)
+            .OrderBy(exercise =>
+                exercise.Name
+            )
             .ToList();
 
         return Ok(new
         {
-            WorkoutsLast30Days = workoutsLast30Days,
-            WorkoutsLast7Days = workoutsLast7Days,
-            SetsLast30Days = setsLast30Days,
-            VolumeLast30Days = volumeLast30Days,
-            Exercises = exercises
+            WorkoutsLast30Days =
+                workoutsLast30Days,
+
+            WorkoutsLast7Days =
+                workoutsLast7Days,
+
+            SetsLast30Days =
+                setsLast30Days,
+
+            VolumeLast30Days =
+                volumeLast30Days,
+
+            Exercises =
+                exercises
         });
     }
 }

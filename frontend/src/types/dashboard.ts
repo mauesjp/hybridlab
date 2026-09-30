@@ -100,7 +100,17 @@ export interface StrengthExercisePerformance {
 
 export interface StrengthExerciseAnalytics {
   name: string
+
   maxWeight: number | null
+  maxWeightReps: number | null
+
+  bestReps: number
+  bestRepsWeight: number | null
+
+  volumeLast30Days: number
+
+  estimatedOneRepMax: number | null
+
   history: StrengthExercisePerformance[]
 }
 
