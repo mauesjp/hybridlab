@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { ActiveSession, BodyWeightEntry, BodyWeightInput, BodyWeightGoal, DashboardData, DayInput, ExerciseInput, PreviousExercisePerformance, PlanDetails, PlanSummary, SessionDetails, SetInput, WorkoutDay, PlannedExercise, WorkoutSet } from '../types/dashboard'
+import type { ActiveSession, StrengthAnalyticsData, BodyWeightEntry, BodyWeightInput, BodyWeightGoal, DashboardData, DayInput, ExerciseInput, PreviousExercisePerformance, PlanDetails, PlanSummary, SessionDetails, SetInput, WorkoutDay, PlannedExercise, WorkoutSet } from '../types/dashboard'
 
 export const dashboardService = {
   me: () => api<string>('/Auth/me'),
@@ -25,6 +25,7 @@ export const dashboardService = {
   deleteExercise: (id: number) => api(`/StrengthPlans/exercises/${id}`, 'DELETE'),
   finishExercise: (id: number) => api(`/WorkoutSessions/exercises/${id}/finish`, 'PUT'),
   activeSession: () => api<ActiveSession>('/WorkoutSessions/active'),
+  strengthAnalytics: () => api<StrengthAnalyticsData>('/StrengthAnalytics'),
   session: (id: number) => api<SessionDetails>(`/WorkoutSessions/${id}`),
   previousPerformance: (sessionId: number) => api<PreviousExercisePerformance[]>(`/WorkoutSessions/${sessionId}/previous-performance`),
   start: (dayId: number) => api<{ id: number }>(`/WorkoutSessions/days/${dayId}/start`, 'POST'),
