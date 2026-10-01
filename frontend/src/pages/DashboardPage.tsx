@@ -29,6 +29,7 @@ import TodayHybridTraining from "../components/TodayHybridTraining";
 
 import RunningPage from "./RunningPage";
 import HybridWeekPage from "./HybridWeekPage";
+import PhysicalAssessmentPage from "./PhysicalAssessmentPage";
 
 interface LoadedDashboard {
   dashboard: DashboardData;
@@ -479,12 +480,41 @@ export default function DashboardPage({ route }: { route: string }) {
   const data = remote.data;
 
   const nav = [
-    ["#/dashboard", "Visão geral", "01"],
-    ["#/semana", "Minha Semana", "02"],
-    ["#/musculacao", "Musculação", "03"],
-    ["#/corrida", "Corrida", "04"],
-    ["#/peso", "Peso corporal", "05"],
-    ["#/historico", "Histórico", "06"],
+    {
+      href: "#/dashboard",
+      label: "Visão geral",
+      number: "01",
+    },
+    {
+      href: "#/semana",
+      label: "Minha Semana",
+      number: "02",
+    },
+    {
+      href: "#/musculacao",
+      label: "Musculação",
+      number: "03",
+    },
+    {
+      href: "#/corrida",
+      label: "Corrida",
+      number: "04",
+    },
+    {
+      href: "#/peso",
+      label: "Peso corporal",
+      number: "05",
+    },
+    {
+      href: "#/avaliacao",
+      label: "Avaliação Física",
+      number: "06",
+    },
+    {
+      href: "#/historico",
+      label: "Histórico",
+      number: "07",
+    },
   ];
 
   const planMatch = /^#\/plano\/(\d+)$/.exec(route);
@@ -527,6 +557,8 @@ export default function DashboardPage({ route }: { route: string }) {
     content = <History data={data.dashboard} />;
   } else if (route === "#/peso") {
     content = <BodyWeightView />;
+  } else if (route === "#/avaliacao") {
+    content = <PhysicalAssessmentPage />;
   } else {
     content = (
       <Overview
@@ -561,9 +593,9 @@ export default function DashboardPage({ route }: { route: string }) {
 
         <nav
           aria-label="Navegação principal"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-6 lg:grid-cols-1"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-7 lg:grid-cols-1"
         >
-          {nav.map(([href, label, number]) => (
+          {nav.map(({ href, label, number }) => (
             <a
               key={href}
               href={href}

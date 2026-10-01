@@ -319,13 +319,17 @@ public class PhysicalAssessmentsController(
         CancellationToken cancellationToken
     )
     {
-        var student = await GetCurrentStudent(cancellationToken);
+        var student =
+            await GetCurrentStudent(
+                cancellationToken
+            );
 
         if (student is null)
             return Unauthorized();
 
         var assessment =
             await context.PhysicalAssessments
+                .Include(x => x.Photos)
                 .SingleOrDefaultAsync(
                     x =>
                         x.Id == id &&
@@ -336,6 +340,19 @@ public class PhysicalAssessmentsController(
         if (assessment is null)
             return NotFound();
 
+        var photoStorageKeys =
+            assessment.Photos
+                .Where(
+                    x =>
+                        !string.IsNullOrWhiteSpace(
+                            x.StorageKey
+                        )
+                )
+                .Select(
+                    x => x.StorageKey
+                )
+                .ToList();
+
         context.PhysicalAssessments.Remove(
             assessment
         );
@@ -343,6 +360,28 @@ public class PhysicalAssessmentsController(
         await context.SaveChangesAsync(
             cancellationToken
         );
+
+        foreach (
+            var storageKey in photoStorageKeys
+        )
+        {
+            try
+            {
+                await fileStorage.DeleteAsync(
+                    storageKey,
+                    cancellationToken
+                );
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(
+                    ex,
+                    "Avaliação {AssessmentId} foi removida, mas não foi possível excluir o arquivo {StorageKey} do storage.",
+                    id,
+                    storageKey
+                );
+            }
+        }
 
         return NoContent();
     }
