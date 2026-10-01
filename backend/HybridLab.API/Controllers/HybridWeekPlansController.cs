@@ -36,8 +36,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
     }
 
     [HttpGet("active")]
-    public async Task<ActionResult<HybridWeekPlanResponseDto>> GetActive(
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<HybridWeekPlanResponseDto>> GetActive(CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
@@ -62,9 +61,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<HybridWeekPlanResponseDto>> GetById(
-        int id,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<HybridWeekPlanResponseDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
@@ -89,9 +86,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
     }
 
     [HttpGet("today")]
-    public async Task<ActionResult<TodayHybridPlanResponseDto>> GetToday(
-        [FromQuery] DateOnly? date,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<TodayHybridPlanResponseDto>> GetToday([FromQuery] DateOnly? date, CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
@@ -148,9 +143,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<HybridWeekPlanResponseDto>> Create(
-        CreateHybridWeekPlanDto dto,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<HybridWeekPlanResponseDto>> Create(CreateHybridWeekPlanDto dto, CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
@@ -206,10 +199,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<HybridWeekPlanResponseDto>> Update(
-        int id,
-        UpdateHybridWeekPlanDto dto,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<HybridWeekPlanResponseDto>> Update(int id, UpdateHybridWeekPlanDto dto, CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
@@ -273,9 +263,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
     }
 
     [HttpPost("{id:int}/activate")]
-    public async Task<ActionResult<HybridWeekPlanResponseDto>> Activate(
-        int id,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<HybridWeekPlanResponseDto>> Activate(int id, CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
@@ -316,9 +304,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(
-        int id,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
@@ -343,6 +329,56 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("options")]
+    public async Task<ActionResult<HybridWeekOptionsResponseDto>> GetOptions(CancellationToken cancellationToken)
+    {
+        var student = await GetCurrentStudent(cancellationToken);
+
+        if (student is null)
+            return Unauthorized();
+
+        var strengthWorkouts =
+            await (
+                from day in context.StrengthWorkoutDays
+                join plan in context.StrengthPlans
+                    on day.StrengthPlanId equals plan.Id
+                where
+                    plan.StudentId == student.Id &&
+                    plan.IsActive
+                orderby day.Order
+                select new HybridWeekWorkoutOptionDto
+                {
+                    Id = day.Id,
+                    Name = day.Name
+                }
+            )
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var runningWorkouts =
+            await context.RunningWorkouts
+                .AsNoTracking()
+                .Where(x => x.StudentId == student.Id)
+                .OrderBy(x => x.Name)
+                .Select(
+                    x =>
+                        new HybridWeekWorkoutOptionDto
+                        {
+                            Id = x.Id,
+                            Name = x.Name
+                        }
+                )
+                .ToListAsync(cancellationToken);
+
+        return Ok(
+            new HybridWeekOptionsResponseDto
+            {
+                StrengthWorkouts = strengthWorkouts,
+                RunningWorkouts = runningWorkouts
+            }
+        );
+    }
+
     private IQueryable<HybridWeekPlan> QueryPlans()
     {
         return context.HybridWeekPlans
@@ -352,8 +388,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
                 .ThenInclude(x => x.RunningWorkout);
     }
 
-    private async Task<StudentProfile?> GetCurrentStudent(
-        CancellationToken cancellationToken)
+    private async Task<StudentProfile?> GetCurrentStudent(CancellationToken cancellationToken)
     {
         var userId =
             User.FindFirstValue(ClaimTypes.NameIdentifier) ??
@@ -370,10 +405,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
             );
     }
 
-    private async Task<string?> ValidateSessions(
-        int studentId,
-        IEnumerable<HybridWeekSessionInputDto> sessions,
-        CancellationToken cancellationToken)
+    private async Task<string?> ValidateSessions(int studentId, IEnumerable<HybridWeekSessionInputDto> sessions, CancellationToken cancellationToken)
     {
         var sessionList =
             sessions.ToList();
@@ -472,10 +504,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
         return null;
     }
 
-    private async Task DeactivateOtherPlans(
-        int studentId,
-        int? exceptPlanId,
-        CancellationToken cancellationToken)
+    private async Task DeactivateOtherPlans(int studentId, int? exceptPlanId, CancellationToken cancellationToken)
     {
         var activePlans =
             await context.HybridWeekPlans
@@ -496,8 +525,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
         }
     }
 
-    private static HybridWeekSession CreateSession(
-        HybridWeekSessionInputDto dto)
+    private static HybridWeekSession CreateSession(HybridWeekSessionInputDto dto)
     {
         return new HybridWeekSession
         {
@@ -511,8 +539,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
         };
     }
 
-    private static HybridWeekPlanResponseDto MapPlan(
-        HybridWeekPlan plan)
+    private static HybridWeekPlanResponseDto MapPlan(HybridWeekPlan plan)
     {
         return new HybridWeekPlanResponseDto
         {
@@ -529,8 +556,7 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
         };
     }
 
-    private static HybridWeekSessionResponseDto MapSession(
-        HybridWeekSession session)
+    private static HybridWeekSessionResponseDto MapSession(HybridWeekSession session)
     {
         var sessionName =
             session.SessionType == HybridSessionType.Strength
@@ -558,4 +584,6 @@ public class HybridWeekPlansController(AppDbContext context) : ControllerBase
 
         return value.Trim();
     }
+
+
 }
