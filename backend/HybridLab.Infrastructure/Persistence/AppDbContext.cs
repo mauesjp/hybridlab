@@ -27,6 +27,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<HybridTrainingPlan> HybridTrainingPlans { get; set; } = null!;
     public DbSet<HybridTrainingWeek> HybridTrainingWeeks { get; set; } = null!;
     public DbSet<HybridWeekSession> HybridWeekSessions { get; set; } = null!;
+    public DbSet<PhysicalAssessment> PhysicalAssessments { get; set; } = null!;
+    public DbSet<PhysicalAssessmentTapeMeasurements> PhysicalAssessmentTapeMeasurements { get; set; } = null!;
+    public DbSet<PhysicalAssessmentSkinfoldMeasurements> PhysicalAssessmentSkinfoldMeasurements { get; set; } = null!;
+    public DbSet<PhysicalAssessmentPhoto> PhysicalAssessmentPhotos { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -278,6 +282,177 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(x => x.RunningWorkoutId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<PhysicalAssessment>(entity =>
+        {
+            entity.ToTable("PhysicalAssessments");
+
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.AssessmentDate)
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(x => x.WeightKg)
+                .HasPrecision(6, 2)
+                .IsRequired();
+
+            entity.Property(x => x.HeightCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.Notes)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.CreatedAt)
+                .IsRequired();
+
+            entity.HasIndex(x => new
+            {
+                x.StudentId,
+                x.AssessmentDate
+            })
+            .IsUnique();
+
+            entity.HasOne(x => x.Student)
+                .WithMany(x => x.PhysicalAssessments)
+                .HasForeignKey(x => x.StudentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.TapeMeasurements)
+                .WithOne(x => x.PhysicalAssessment)
+                .HasForeignKey<PhysicalAssessmentTapeMeasurements>(
+                    x => x.PhysicalAssessmentId
+                )
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.SkinfoldMeasurements)
+                .WithOne(x => x.PhysicalAssessment)
+                .HasForeignKey<PhysicalAssessmentSkinfoldMeasurements>(
+                    x => x.PhysicalAssessmentId
+                )
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(x => x.Photos)
+                .WithOne(x => x.PhysicalAssessment)
+                .HasForeignKey(x => x.PhysicalAssessmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PhysicalAssessmentTapeMeasurements>(entity =>
+        {
+            entity.ToTable("PhysicalAssessmentTapeMeasurements");
+
+            entity.HasKey(x => x.PhysicalAssessmentId);
+
+            entity.Property(x => x.NeckCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.ShouldersCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.ChestCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.WaistCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.WaistAtNavelCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.AbdomenCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.HipCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.RightArmRelaxedCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.LeftArmRelaxedCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.RightArmFlexedCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.LeftArmFlexedCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.RightThighCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.LeftThighCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.RightCalfCm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.LeftCalfCm)
+                .HasPrecision(6, 2);
+        });
+
+        builder.Entity<PhysicalAssessmentSkinfoldMeasurements>(entity =>
+        {
+            entity.ToTable("PhysicalAssessmentSkinfoldMeasurements");
+
+            entity.HasKey(x => x.PhysicalAssessmentId);
+
+            entity.Property(x => x.ChestMm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.AbdomenMm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.ThighMm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.TricepsMm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.SubscapularMm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.SuprailiacMm)
+                .HasPrecision(6, 2);
+
+            entity.Property(x => x.MidaxillaryMm)
+                .HasPrecision(6, 2);
+        });
+
+        builder.Entity<PhysicalAssessmentPhoto>(entity =>
+        {
+            entity.ToTable("PhysicalAssessmentPhotos");
+
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Type)
+                .IsRequired();
+
+            entity.Property(x => x.StorageKey)
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(x => x.OriginalFileName)
+                .HasMaxLength(255);
+
+            entity.Property(x => x.ContentType)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            entity.Property(x => x.SizeBytes)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .IsRequired();
+
+            entity.HasIndex(x => x.PhysicalAssessmentId);
+
+            entity.HasIndex(x => new
+            {
+                x.PhysicalAssessmentId,
+                x.Type
+            })
+            .IsUnique();
         });
     }
 }
