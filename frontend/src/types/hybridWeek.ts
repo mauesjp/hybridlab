@@ -20,12 +20,25 @@ export interface HybridWeekSession {
   notes: string | null
 }
 
-export interface HybridWeekPlan {
+export interface HybridTrainingWeek {
+  id: number
+  weekNumber: number
+  name: string | null
+  notes: string | null
+  startDate: string
+  endDate: string
+  sessions: HybridWeekSession[]
+}
+
+export interface HybridTrainingPlan {
   id: number
   name: string
+  startDate: string
+  endDate: string
+  totalWeeks: number
   isActive: boolean
   createdAt: string
-  sessions: HybridWeekSession[]
+  weeks: HybridTrainingWeek[]
 }
 
 export interface HybridWeekSessionInput {
@@ -38,19 +51,40 @@ export interface HybridWeekSessionInput {
   notes?: string | null
 }
 
-export interface HybridWeekPlanInput {
-  name: string
-  isActive: boolean
+export interface HybridTrainingWeekInput {
+  weekNumber: number
+  name?: string | null
+  notes?: string | null
   sessions: HybridWeekSessionInput[]
+}
+
+export interface HybridTrainingPlanInput {
+  name: string
+  startDate: string
+  isActive: boolean
+  weeks: HybridTrainingWeekInput[]
 }
 
 export interface TodayHybridPlan {
   date: string
   dayOfWeek: number
+
   hasActivePlan: boolean
+
   planId: number | null
   planName: string | null
+
+  planStartDate: string | null
+  planEndDate: string | null
+
+  weekId: number | null
+  weekNumber: number | null
+  totalWeeks: number
+
+  isBeforePlan: boolean
+  isAfterPlan: boolean
   isRestDay: boolean
+
   sessions: HybridWeekSession[]
 }
 

@@ -31,6 +31,16 @@ function formatToday() {
   });
 }
 
+function formatDate(value: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+
+  return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
+}
+
 export default function TodayHybridTraining() {
   const [today, setToday] = useState<TodayHybridPlan | null>(null);
 
@@ -93,7 +103,7 @@ export default function TodayHybridTraining() {
             <p className="dash-eyebrow">Hoje</p>
 
             <h2 className="mt-2 text-xl font-semibold">
-              Configure sua Semana Híbrida
+              Crie seu planejamento híbrido
             </h2>
 
             <p className="mt-2 text-sm text-muted">{formatToday()}</p>
@@ -103,14 +113,84 @@ export default function TodayHybridTraining() {
             href="#/semana"
             className="rounded-xl border border-border px-4 py-2 text-sm"
           >
-            Montar semana
+            Criar planejamento
           </a>
         </div>
 
         <p className="mt-5 max-w-2xl text-sm leading-6 text-muted">
-          Organize seus treinos de musculação e corrida para o HybridLab mostrar
-          automaticamente o que está planejado para cada dia.
+          Organize musculação e corrida em um ciclo de uma ou mais semanas para
+          o HybridLab mostrar automaticamente o treino correspondente a cada
+          dia.
         </p>
+      </section>
+    );
+  }
+
+  if (today.isBeforePlan) {
+    return (
+      <section className="dash-panel">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="dash-eyebrow">Próximo planejamento</p>
+
+            <h2 className="mt-2 text-xl font-semibold">{today.planName}</h2>
+
+            <p className="mt-2 text-sm text-muted">
+              Começa em {formatDate(today.planStartDate)}
+            </p>
+          </div>
+
+          <a
+            href="#/semana"
+            className="rounded-xl border border-border px-4 py-2 text-sm"
+          >
+            Ver planejamento
+          </a>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-dashed border-border p-5">
+          <p className="font-medium">O ciclo ainda não começou.</p>
+
+          <p className="mt-1 text-sm text-muted">
+            Hoje não será tratado como dia de descanso porque o planejamento
+            começa em uma data futura.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  if (today.isAfterPlan) {
+    return (
+      <section className="dash-panel">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="dash-eyebrow">Planejamento concluído</p>
+
+            <h2 className="mt-2 text-xl font-semibold">{today.planName}</h2>
+
+            <p className="mt-2 text-sm text-muted">
+              {today.totalWeeks} {today.totalWeeks === 1 ? "semana" : "semanas"}
+              {" · "}
+              término em {formatDate(today.planEndDate)}
+            </p>
+          </div>
+
+          <a
+            href="#/semana"
+            className="rounded-xl border border-border px-4 py-2 text-sm"
+          >
+            Ver planejamento
+          </a>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-dashed border-border p-5">
+          <p className="font-medium">Este ciclo chegou ao fim.</p>
+
+          <p className="mt-1 text-sm text-muted">
+            Você pode editar o planejamento, prolongar o ciclo ou criar um novo.
+          </p>
+        </div>
       </section>
     );
   }
@@ -125,6 +205,13 @@ export default function TodayHybridTraining() {
             <h2 className="mt-2 text-xl font-semibold">Dia de descanso</h2>
 
             <p className="mt-2 text-sm text-muted">{formatToday()}</p>
+
+            {today.weekNumber !== null && (
+              <p className="mt-1 text-xs text-muted">
+                Semana {today.weekNumber} de {today.totalWeeks}
+                {today.planName ? ` · ${today.planName}` : ""}
+              </p>
+            )}
           </div>
 
           <a
@@ -139,7 +226,7 @@ export default function TodayHybridTraining() {
           <p className="font-medium">Nenhum treino planejado para hoje.</p>
 
           <p className="mt-1 text-sm text-muted">
-            Aproveite o dia de recuperação.
+            Aproveite o dia para recuperação.
           </p>
         </div>
       </section>
@@ -154,10 +241,14 @@ export default function TodayHybridTraining() {
 
           <h2 className="mt-2 text-xl font-semibold">Seu treino de hoje</h2>
 
-          <p className="mt-2 text-sm text-muted">
-            {formatToday()}
-            {today.planName ? ` · ${today.planName}` : ""}
-          </p>
+          <p className="mt-2 text-sm text-muted">{formatToday()}</p>
+
+          {today.weekNumber !== null && (
+            <p className="mt-1 text-xs text-muted">
+              Semana {today.weekNumber} de {today.totalWeeks}
+              {today.planName ? ` · ${today.planName}` : ""}
+            </p>
+          )}
         </div>
 
         <a
