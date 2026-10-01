@@ -9,6 +9,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
+using Amazon.Runtime;
+using Amazon.S3;
+using HybridLab.Application.Abstractions.Storage;
+using HybridLab.Infrastructure.Storage;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -125,6 +130,62 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+
+builder.Services.Configure<R2StorageOptions>(
+    builder.Configuration.GetSection("Storage:R2")
+);
+
+builder.Services.AddSingleton<IAmazonS3>(serviceProvider =>
+{
+    var options =
+        serviceProvider
+            .GetRequiredService<IOptions<R2StorageOptions>>()
+            .Value;
+
+    if (string.IsNullOrWhiteSpace(options.ServiceUrl))
+        throw new InvalidOperationException(
+            "Storage:R2:ServiceUrl não configurado."
+        );
+
+    if (string.IsNullOrWhiteSpace(options.BucketName))
+        throw new InvalidOperationException(
+            "Storage:R2:BucketName não configurado."
+        );
+
+    if (string.IsNullOrWhiteSpace(options.AccessKeyId))
+        throw new InvalidOperationException(
+            "Storage:R2:AccessKeyId não configurado."
+        );
+
+    if (string.IsNullOrWhiteSpace(options.SecretAccessKey))
+        throw new InvalidOperationException(
+            "Storage:R2:SecretAccessKey não configurado."
+        );
+
+    var credentials =
+        new BasicAWSCredentials(
+            options.AccessKeyId,
+            options.SecretAccessKey
+        );
+
+    var config =
+        new AmazonS3Config
+        {
+            ServiceURL = options.ServiceUrl,
+
+            ForcePathStyle = true
+        };
+
+    return new AmazonS3Client(
+        credentials,
+        config
+    );
+});
+
+builder.Services.AddScoped<
+    IFileStorage,
+    R2FileStorage
+>();
 
 var app = builder.Build();
 
