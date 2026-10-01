@@ -27,6 +27,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<RunningWorkout> RunningWorkouts { get; set; } = null!;
     public DbSet<RunningWorkoutBlock> RunningWorkoutBlocks { get; set; } = null!;
+    public DbSet<RunningActivity> RunningActivities { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -132,6 +133,49 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(x => x.RunningWorkout)
                 .WithMany(x => x.Blocks)
                 .HasForeignKey(x => x.RunningWorkoutId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<RunningActivity>(entity =>
+        {
+            entity.ToTable("RunningActivities");
+
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.ActivityDate)
+                .HasColumnType("date")
+                .IsRequired();
+
+            entity.Property(x => x.DistanceKm)
+                .HasPrecision(7, 2)
+                .IsRequired();
+
+            entity.Property(x => x.DurationSeconds)
+                .IsRequired();
+
+            entity.Property(x => x.AverageHeartRate);
+
+            entity.Property(x => x.Rpe)
+                .HasPrecision(3, 1);
+
+            entity.Property(x => x.Notes)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.Source)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .IsRequired();
+
+            entity.HasIndex(x => new
+            {
+                x.StudentId,
+                x.ActivityDate
+            });
+
+            entity.HasOne(x => x.Student)
+                .WithMany(x => x.RunningActivities)
+                .HasForeignKey(x => x.StudentId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

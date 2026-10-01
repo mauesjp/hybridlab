@@ -9,5 +9,6 @@
         public decimal? GoalWeightKg { get; set; }
         public DateTime CreatedAt { get; set; }
         public ICollection<RunningWorkout> RunningWorkouts { get; set; } = new List<RunningWorkout>();
+        public ICollection<RunningActivity> RunningActivities { get; set; } = new List<RunningActivity>();
     }
 }
