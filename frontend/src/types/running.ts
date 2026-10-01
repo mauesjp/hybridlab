@@ -23,7 +23,6 @@ export interface RunningWorkoutBlock {
 export interface RunningWorkout {
   id: number
   name: string
-  scheduledDate: string
   notes: string | null
   createdAt: string
   blocks: RunningWorkoutBlock[]
@@ -40,7 +39,6 @@ export interface RunningWorkoutBlockInput {
 
 export interface RunningWorkoutInput {
   name: string
-  scheduledDate: string
   notes?: string | null
   blocks: RunningWorkoutBlockInput[]
 }

@@ -25,7 +25,10 @@ import {
 import { dateTime, sessionStatusLabel } from "../components/dashboard/format";
 
 import BodyWeightView from "../components/dashboard/BodyWeightView";
+import TodayHybridTraining from "../components/TodayHybridTraining";
+
 import RunningPage from "./RunningPage";
+import HybridWeekPage from "./HybridWeekPage";
 
 interface LoadedDashboard {
   dashboard: DashboardData;
@@ -201,6 +204,8 @@ function Overview({
         </p>
       </div>
 
+      <TodayHybridTraining />
+
       <div className="grid gap-6 xl:grid-cols-[1.15fr_1fr]">
         <Panel>
           <p className="dash-eyebrow">
@@ -346,6 +351,13 @@ function Overview({
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <ModuleCard
+            title="Minha Semana"
+            description="Combine musculação e corrida em uma única rotina semanal."
+            href="#/semana"
+            available
+          />
+
+          <ModuleCard
             title="Musculação"
             description="Planejamento, execução, histórico e evolução dos seus treinos."
             href="#/musculacao"
@@ -353,16 +365,16 @@ function Overview({
           />
 
           <ModuleCard
-            title="Peso corporal"
-            description="Pesagens, meta, média de 7 dias e tendência."
-            href="#/peso"
+            title="Corrida"
+            description="Treinos reutilizáveis, registro de corridas, histórico e evolução."
+            href="#/corrida"
             available
           />
 
           <ModuleCard
-            title="Corrida"
-            description="Planejamento semanal e organização dos seus treinos de corrida."
-            href="#/corrida"
+            title="Peso corporal"
+            description="Pesagens, meta, média de 7 dias e tendência."
+            href="#/peso"
             available
           />
 
@@ -468,10 +480,11 @@ export default function DashboardPage({ route }: { route: string }) {
 
   const nav = [
     ["#/dashboard", "Visão geral", "01"],
-    ["#/musculacao", "Musculação", "02"],
-    ["#/peso", "Peso corporal", "03"],
+    ["#/semana", "Minha Semana", "02"],
+    ["#/musculacao", "Musculação", "03"],
     ["#/corrida", "Corrida", "04"],
-    ["#/historico", "Histórico", "05"],
+    ["#/peso", "Peso corporal", "05"],
+    ["#/historico", "Histórico", "06"],
   ];
 
   const planMatch = /^#\/plano\/(\d+)$/.exec(route);
@@ -504,6 +517,8 @@ export default function DashboardPage({ route }: { route: string }) {
         onChanged={remote.reload}
       />
     );
+  } else if (route === "#/semana") {
+    content = <HybridWeekPage />;
   } else if (route === "#/musculacao") {
     content = <PlansList data={data.dashboard} onChanged={remote.reload} />;
   } else if (route === "#/corrida") {
@@ -546,7 +561,7 @@ export default function DashboardPage({ route }: { route: string }) {
 
         <nav
           aria-label="Navegação principal"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-5 lg:grid-cols-1"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-6 lg:grid-cols-1"
         >
           {nav.map(([href, label, number]) => (
             <a
