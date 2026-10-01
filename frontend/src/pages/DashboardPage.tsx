@@ -1,62 +1,63 @@
-import { useCallback } from 'react'
-import { clearSession } from '../services/api'
-import { dashboardService as service } from '../services/dashboardService'
-import { useRemote } from '../hooks/useRemote'
+import { useCallback } from "react";
+
+import { clearSession } from "../services/api";
+import { dashboardService as service } from "../services/dashboardService";
+import { useRemote } from "../hooks/useRemote";
+
 import type {
   ActiveSession,
   BodyWeightEntry,
-  DashboardData
-} from '../types/dashboard'
-import PlansList from '../components/dashboard/PlansList'
-import PlanView from '../components/dashboard/PlanView'
-import SessionView from '../components/dashboard/SessionView'
+  DashboardData,
+} from "../types/dashboard";
+
+import PlansList from "../components/dashboard/PlansList";
+import PlanView from "../components/dashboard/PlanView";
+import SessionView from "../components/dashboard/SessionView";
+
 import {
   Badge,
   Empty,
   ErrorNotice,
   Loading,
-  Panel
-} from '../components/dashboard/UI'
-import {
-  dateTime,
-  sessionStatusLabel
-} from '../components/dashboard/format'
-import BodyWeightView from '../components/dashboard/BodyWeightView'
+  Panel,
+} from "../components/dashboard/UI";
+
+import { dateTime, sessionStatusLabel } from "../components/dashboard/format";
+
+import BodyWeightView from "../components/dashboard/BodyWeightView";
+import RunningPage from "./RunningPage";
 
 interface LoadedDashboard {
-  dashboard: DashboardData
-  active: ActiveSession | null
-  weightEntries: BodyWeightEntry[]
-  goalWeight: number | null
+  dashboard: DashboardData;
+  active: ActiveSession | null;
+  weightEntries: BodyWeightEntry[];
+  goalWeight: number | null;
 }
 
 interface WeightSummary {
-  current: number | null
-  initial: number | null
-  average7Days: number | null
-  goal: number | null
-  variation: number | null
+  current: number | null;
+  initial: number | null;
+  average7Days: number | null;
+  goal: number | null;
+  variation: number | null;
 }
 
 function numberValue(value: number) {
-  return value.toLocaleString('pt-BR', {
+  return value.toLocaleString("pt-BR", {
     minimumFractionDigits: 1,
-    maximumFractionDigits: 2
-  })
+    maximumFractionDigits: 2,
+  });
 }
 
 function dateTimestamp(value: string) {
-  const [year, month, day] = value
-    .slice(0, 10)
-    .split('-')
-    .map(Number)
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
 
-  return Date.UTC(year, month - 1, day)
+  return Date.UTC(year, month - 1, day);
 }
 
 function getWeightSummary(
   entries: BodyWeightEntry[],
-  goal: number | null
+  goal: number | null,
 ): WeightSummary {
   if (!entries.length) {
     return {
@@ -64,171 +65,126 @@ function getWeightSummary(
       initial: null,
       average7Days: null,
       goal,
-      variation: null
-    }
+      variation: null,
+    };
   }
 
-  const ordered = [...entries].sort(
-    (a, b) =>
-      b.recordedAt.localeCompare(a.recordedAt)
-  )
+  const ordered = [...entries].sort((a, b) =>
+    b.recordedAt.localeCompare(a.recordedAt),
+  );
 
-  const current = ordered[0].weightKg
-  const initial = ordered.at(-1)?.weightKg ?? null
+  const current = ordered[0].weightKg;
 
-  const latestTimestamp =
-    dateTimestamp(ordered[0].recordedAt)
+  const initial = ordered.at(-1)?.weightKg ?? null;
 
-  const windowStart =
-    latestTimestamp - 6 * 24 * 60 * 60 * 1000
+  const latestTimestamp = dateTimestamp(ordered[0].recordedAt);
 
-  const recentEntries = ordered.filter(entry => {
-    const timestamp =
-      dateTimestamp(entry.recordedAt)
+  const windowStart = latestTimestamp - 6 * 24 * 60 * 60 * 1000;
 
-    return (
-      timestamp >= windowStart &&
-      timestamp <= latestTimestamp
-    )
-  })
+  const recentEntries = ordered.filter((entry) => {
+    const timestamp = dateTimestamp(entry.recordedAt);
+
+    return timestamp >= windowStart && timestamp <= latestTimestamp;
+  });
 
   const average7Days =
     recentEntries.length > 0
-      ? recentEntries.reduce(
-          (total, entry) =>
-            total + entry.weightKg,
-          0
-        ) / recentEntries.length
-      : null
+      ? recentEntries.reduce((total, entry) => total + entry.weightKg, 0) /
+        recentEntries.length
+      : null;
 
   return {
     current,
     initial,
     average7Days,
     goal,
-    variation:
-      initial === null
-        ? null
-        : current - initial
-  }
+    variation: initial === null ? null : current - initial,
+  };
 }
 
 function WeightMetric({
   label,
   value,
-  description
+  description,
 }: {
-  label: string
-  value: string
-  description?: string
+  label: string;
+  value: string;
+  description?: string;
 }) {
   return (
     <div className="rounded-xl border border-border p-4">
-      <p className="text-xs uppercase tracking-[0.12em] text-muted">
-        {label}
-      </p>
+      <p className="text-xs uppercase tracking-[0.12em] text-muted">{label}</p>
 
-      <p className="mt-3 text-2xl font-semibold tracking-tight">
-        {value}
-      </p>
+      <p className="mt-3 text-2xl font-semibold tracking-tight">{value}</p>
 
       {description && (
-        <p className="mt-2 text-xs leading-5 text-muted">
-          {description}
-        </p>
+        <p className="mt-2 text-xs leading-5 text-muted">{description}</p>
       )}
     </div>
-  )
+  );
 }
 
 function ModuleCard({
   title,
   description,
   href,
-  available = false
+  available = false,
 }: {
-  title: string
-  description: string
-  href?: string
-  available?: boolean
+  title: string;
+  description: string;
+  href?: string;
+  available?: boolean;
 }) {
   const content = (
     <>
       <div className="flex items-start justify-between gap-3">
-        <h3 className="font-semibold">
-          {title}
-        </h3>
+        <h3 className="font-semibold">{title}</h3>
 
-        <Badge>
-          {available
-            ? 'Disponível'
-            : 'Em breve'}
-        </Badge>
+        <Badge>{available ? "Disponível" : "Em breve"}</Badge>
       </div>
 
-      <p className="mt-3 text-sm leading-6 text-muted">
-        {description}
-      </p>
+      <p className="mt-3 text-sm leading-6 text-muted">{description}</p>
 
-      {available && (
-        <p className="mt-5 text-sm font-medium">
-          Abrir módulo →
-        </p>
-      )}
+      {available && <p className="mt-5 text-sm font-medium">Abrir módulo →</p>}
     </>
-  )
+  );
 
   if (!href) {
-    return (
-      <div className="dash-panel opacity-70">
-        {content}
-      </div>
-    )
+    return <div className="dash-panel opacity-70">{content}</div>;
   }
 
   return (
-    <a
-      href={href}
-      className="dash-panel block transition hover:bg-control"
-    >
+    <a href={href} className="dash-panel block transition hover:bg-control">
       {content}
     </a>
-  )
+  );
 }
 
 function Overview({
   data,
   active,
   weightEntries,
-  goalWeight
+  goalWeight,
 }: {
-  data: DashboardData
-  active: ActiveSession | null
-  weightEntries: BodyWeightEntry[]
-  goalWeight: number | null
+  data: DashboardData;
+  active: ActiveSession | null;
+  weightEntries: BodyWeightEntry[];
+  goalWeight: number | null;
 }) {
-  const activePlans =
-    data.plans.filter(plan => plan.isActive)
+  const activePlans = data.plans.filter((plan) => plan.isActive);
 
-  const weight = getWeightSummary(
-    weightEntries,
-    goalWeight
-  )
+  const weight = getWeightSummary(weightEntries, goalWeight);
 
-  const currentPlan =
-    activePlans[0] ?? null
+  const currentPlan = activePlans[0] ?? null;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="dash-eyebrow">
-            Seu espaço de evolução
-          </p>
+          <p className="dash-eyebrow">Seu espaço de evolução</p>
 
           <h1 className="dash-title">
-            Olá,{' '}
-            {data.profile.displayName.split(' ')[0]}.
+            Olá, {data.profile.displayName.split(" ")[0]}.
           </h1>
 
           <p className="mt-3 text-sm leading-6 text-muted">
@@ -237,39 +193,34 @@ function Overview({
         </div>
 
         <p className="text-sm text-muted">
-          {new Date().toLocaleDateString(
-            'pt-BR',
-            {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long'
-            }
-          )}
+          {new Date().toLocaleDateString("pt-BR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
         </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_1fr]">
         <Panel>
           <p className="dash-eyebrow">
-            {active?.hasActiveSession
-              ? 'Treino em andamento'
-              : 'Musculação'}
+            {active?.hasActiveSession ? "Treino em andamento" : "Musculação"}
           </p>
 
           <h2 className="mt-3 text-2xl font-semibold tracking-tight">
             {active?.hasActiveSession
-              ? 'Continue de onde parou.'
+              ? "Continue de onde parou."
               : currentPlan
                 ? currentPlan.name
-                : 'Seu próximo treino começa aqui.'}
+                : "Seu próximo treino começa aqui."}
           </h2>
 
           <p className="mt-4 text-sm leading-7 text-muted">
             {active?.hasActiveSession
-              ? 'Sua sessão continua salva. Retome o treino e siga registrando suas séries.'
+              ? "Sua sessão continua salva. Retome o treino e siga registrando suas séries."
               : currentPlan
-                ? 'Seu plano está ativo e pronto para consulta e execução.'
-                : 'Crie seu primeiro planejamento de musculação e organize seus treinos.'}
+                ? "Seu plano está ativo e pronto para consulta e execução."
+                : "Crie seu primeiro planejamento de musculação e organize seus treinos."}
           </p>
 
           <a
@@ -279,14 +230,14 @@ function Overview({
                 ? `#/treino/${active.sessionId}`
                 : currentPlan
                   ? `#/plano/${currentPlan.id}`
-                  : '#/musculacao'
+                  : "#/musculacao"
             }
           >
             {active?.hasActiveSession
-              ? 'Retomar treino'
+              ? "Retomar treino"
               : currentPlan
-                ? 'Abrir meu plano'
-                : 'Criar planejamento'}{' '}
+                ? "Abrir meu plano"
+                : "Criar planejamento"}{" "}
             →
           </a>
         </Panel>
@@ -294,9 +245,7 @@ function Overview({
         <Panel title="Musculação em números">
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <p className="text-xs text-muted">
-                Concluídos
-              </p>
+              <p className="text-xs text-muted">Concluídos</p>
 
               <p className="mt-2 text-2xl font-semibold">
                 {data.completedSessions}
@@ -304,9 +253,7 @@ function Overview({
             </div>
 
             <div>
-              <p className="text-xs text-muted">
-                Parciais
-              </p>
+              <p className="text-xs text-muted">Parciais</p>
 
               <p className="mt-2 text-2xl font-semibold">
                 {data.partialSessions}
@@ -314,9 +261,7 @@ function Overview({
             </div>
 
             <div>
-              <p className="text-xs text-muted">
-                Planos ativos
-              </p>
+              <p className="text-xs text-muted">Planos ativos</p>
 
               <p className="mt-2 text-2xl font-semibold">
                 {activePlans.length}
@@ -329,10 +274,7 @@ function Overview({
       <Panel
         title="Peso e evolução"
         action={
-          <a
-            href="#/peso"
-            className="auth-link text-sm"
-          >
+          <a href="#/peso" className="auth-link text-sm">
             Ver detalhes
           </a>
         }
@@ -343,10 +285,7 @@ function Overview({
               Você ainda não registrou nenhuma pesagem.
             </p>
 
-            <a
-              href="#/peso"
-              className="dash-primary mt-5"
-            >
+            <a href="#/peso" className="dash-primary mt-5">
               Registrar peso →
             </a>
           </div>
@@ -356,7 +295,7 @@ function Overview({
               label="Peso atual"
               value={
                 weight.current === null
-                  ? '—'
+                  ? "—"
                   : `${numberValue(weight.current)} kg`
               }
             />
@@ -365,7 +304,7 @@ function Overview({
               label="Média 7 dias"
               value={
                 weight.average7Days === null
-                  ? '—'
+                  ? "—"
                   : `${numberValue(weight.average7Days)} kg`
               }
               description="Média das pesagens disponíveis nos últimos 7 dias."
@@ -374,13 +313,11 @@ function Overview({
             <WeightMetric
               label="Meta"
               value={
-                weight.goal === null
-                  ? '—'
-                  : `${numberValue(weight.goal)} kg`
+                weight.goal === null ? "—" : `${numberValue(weight.goal)} kg`
               }
               description={
                 weight.goal === null
-                  ? 'Defina uma meta no módulo de peso.'
+                  ? "Defina uma meta no módulo de peso."
                   : undefined
               }
             />
@@ -389,13 +326,9 @@ function Overview({
               label="Variação"
               value={
                 weight.variation === null
-                  ? '—'
-                  : `${
-                      weight.variation > 0
-                        ? '+'
-                        : ''
-                    }${numberValue(
-                      weight.variation
+                  ? "—"
+                  : `${weight.variation > 0 ? "+" : ""}${numberValue(
+                      weight.variation,
                     )} kg`
               }
               description="Desde a primeira pesagem registrada."
@@ -406,13 +339,9 @@ function Overview({
 
       <div>
         <div className="mb-4">
-          <p className="dash-eyebrow">
-            Sua central
-          </p>
+          <p className="dash-eyebrow">Sua central</p>
 
-          <h2 className="mt-2 text-xl font-semibold">
-            Tudo em um só lugar
-          </h2>
+          <h2 className="mt-2 text-xl font-semibold">Tudo em um só lugar</h2>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -432,7 +361,9 @@ function Overview({
 
           <ModuleCard
             title="Corrida"
-            description="Planejamento, registros e evolução das suas corridas."
+            description="Planejamento semanal e organização dos seus treinos de corrida."
+            href="#/corrida"
+            available
           />
 
           <ModuleCard
@@ -452,38 +383,28 @@ function Overview({
         </div>
       </div>
 
-      <History
-        data={data}
-        compact
-      />
+      <History data={data} compact />
     </div>
-  )
+  );
 }
 
 function History({
   data,
-  compact = false
+  compact = false,
 }: {
-  data: DashboardData
-  compact?: boolean
+  data: DashboardData;
+  compact?: boolean;
 }) {
   const sessions = compact
     ? data.recentSessions.slice(0, 4)
-    : data.recentSessions
+    : data.recentSessions;
 
   return (
     <Panel
-      title={
-        compact
-          ? 'Últimos treinos'
-          : 'Histórico de treinos'
-      }
+      title={compact ? "Últimos treinos" : "Histórico de treinos"}
       action={
         compact ? (
-          <a
-            className="auth-link text-sm"
-            href="#/historico"
-          >
+          <a className="auth-link text-sm" href="#/historico">
             Ver histórico
           </a>
         ) : undefined
@@ -501,99 +422,70 @@ function History({
         </Empty>
       ) : (
         <div className="divide-y divide-border">
-          {sessions.map(session => (
+          {sessions.map((session) => (
             <a
               key={session.id}
               href={`#/treino/${session.id}`}
               className="flex flex-wrap items-center justify-between gap-3 rounded-lg py-4 hover:bg-control"
             >
               <div>
-                <p className="font-medium">
-                  {session.dayName}
-                </p>
+                <p className="font-medium">{session.dayName}</p>
 
                 <p className="mt-1 text-sm text-muted">
                   {dateTime(session.startedAt)}
                 </p>
               </div>
 
-              <Badge>
-                {sessionStatusLabel(
-                  session.status
-                )}{' '}
-                →
-              </Badge>
+              <Badge>{sessionStatusLabel(session.status)} →</Badge>
             </a>
           ))}
         </div>
       )}
     </Panel>
-  )
+  );
 }
 
-export default function DashboardPage({
-  route
-}: {
-  route: string
-}) {
-  const load =
-    useCallback(
-      async (): Promise<LoadedDashboard> => {
-        const [
-          dashboard,
-          active,
-          weightEntries,
-          goal
-        ] = await Promise.all([
-          service.dashboard(),
-          service.activeSession(),
-          service.bodyWeight(),
-          service.bodyWeightGoal()
-        ])
+export default function DashboardPage({ route }: { route: string }) {
+  const load = useCallback(async (): Promise<LoadedDashboard> => {
+    const [dashboard, active, weightEntries, goal] = await Promise.all([
+      service.dashboard(),
+      service.activeSession(),
+      service.bodyWeight(),
+      service.bodyWeightGoal(),
+    ]);
 
-        return {
-          dashboard,
-          active,
-          weightEntries,
-          goalWeight:
-            goal.goalWeightKg
-        }
-      },
-      []
-    )
+    return {
+      dashboard,
+      active,
+      weightEntries,
+      goalWeight: goal.goalWeightKg,
+    };
+  }, []);
 
-  const remote = useRemote(load)
-  const data = remote.data
+  const remote = useRemote(load);
+
+  const data = remote.data;
 
   const nav = [
-    ['#/dashboard', 'Visão geral', '01'],
-    ['#/musculacao', 'Musculação', '02'],
-    ['#/peso', 'Peso corporal', '03'],
-    ['#/historico', 'Histórico', '04']
-  ]
+    ["#/dashboard", "Visão geral", "01"],
+    ["#/musculacao", "Musculação", "02"],
+    ["#/peso", "Peso corporal", "03"],
+    ["#/corrida", "Corrida", "04"],
+    ["#/historico", "Histórico", "05"],
+  ];
 
-  const planMatch =
-    /^#\/plano\/(\d+)$/.exec(route)
+  const planMatch = /^#\/plano\/(\d+)$/.exec(route);
 
-  const sessionMatch =
-    /^#\/treino\/(\d+)$/.exec(route)
+  const sessionMatch = /^#\/treino\/(\d+)$/.exec(route);
 
-  const currentNav =
-    planMatch || sessionMatch
-      ? '#/musculacao'
-      : route
+  const currentNav = planMatch || sessionMatch ? "#/musculacao" : route;
 
-  let content
+  let content;
 
   if (!data && remote.loading) {
-    content = <Loading />
+    content = <Loading />;
   } else if (!data) {
-    content = (
-      <ErrorNotice
-        message={remote.error}
-        retry={remote.reload}
-      />
-    )
+    content = <ErrorNotice message={remote.error} retry={remote.reload} />;
   } else if (planMatch) {
     content = (
       <PlanView
@@ -603,7 +495,7 @@ export default function DashboardPage({
         active={data.active}
         onChanged={remote.reload}
       />
-    )
+    );
   } else if (sessionMatch) {
     content = (
       <SessionView
@@ -611,41 +503,24 @@ export default function DashboardPage({
         id={Number(sessionMatch[1])}
         onChanged={remote.reload}
       />
-    )
-  } else if (
-    route === '#/musculacao'
-  ) {
-    content = (
-      <PlansList
-        data={data.dashboard}
-        onChanged={remote.reload}
-      />
-    )
-  } else if (
-    route === '#/historico'
-  ) {
-    content = (
-      <History
-        data={data.dashboard}
-      />
-    )
-  } else if (
-    route === '#/peso'
-  ) {
-    content = <BodyWeightView />
+    );
+  } else if (route === "#/musculacao") {
+    content = <PlansList data={data.dashboard} onChanged={remote.reload} />;
+  } else if (route === "#/corrida") {
+    content = <RunningPage />;
+  } else if (route === "#/historico") {
+    content = <History data={data.dashboard} />;
+  } else if (route === "#/peso") {
+    content = <BodyWeightView />;
   } else {
     content = (
       <Overview
         data={data.dashboard}
         active={data.active}
-        weightEntries={
-          data.weightEntries
-        }
-        goalWeight={
-          data.goalWeight
-        }
+        weightEntries={data.weightEntries}
+        goalWeight={data.goalWeight}
       />
-    )
+    );
   }
 
   return (
@@ -671,63 +546,47 @@ export default function DashboardPage({
 
         <nav
           aria-label="Navegação principal"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-1"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-5 lg:grid-cols-1"
         >
-          {nav.map(
-            ([
-              href,
-              label,
-              number
-            ]) => (
-              <a
-                key={href}
-                href={href}
-                aria-current={
-                  currentNav === href ||
-                  (
-                    href === '#/dashboard' &&
-                    [
-                      '',
-                      '#/login',
-                      '#/registro'
-                    ].includes(route)
-                  )
-                    ? 'page'
-                    : undefined
-                }
-                className="dash-nav"
-              >
-                <span className="hidden text-xs opacity-50 lg:inline">
-                  {number}
-                </span>
+          {nav.map(([href, label, number]) => (
+            <a
+              key={href}
+              href={href}
+              aria-current={
+                currentNav === href ||
+                (href === "#/dashboard" &&
+                  ["", "#/login", "#/registro"].includes(route))
+                  ? "page"
+                  : undefined
+              }
+              className="dash-nav"
+            >
+              <span className="hidden text-xs opacity-50 lg:inline">
+                {number}
+              </span>
 
-                {label}
-              </a>
-            )
-          )}
+              {label}
+            </a>
+          ))}
         </nav>
 
         <div className="mt-5 flex items-center justify-between gap-2 border-t border-border pt-4 lg:mt-12 lg:flex-col lg:items-start">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">
-              {data?.dashboard.profile
-                .displayName ??
-                'Sua conta'}
+              {data?.dashboard.profile.displayName ?? "Sua conta"}
             </p>
 
             <p className="mt-1 text-xs text-muted">
-              {data
-                ? 'Conta pessoal'
-                : 'Conectando…'}
+              {data ? "Conta pessoal" : "Conectando…"}
             </p>
           </div>
 
           <button
             className="dash-secondary lg:mt-4"
             onClick={() => {
-              clearSession()
-              window.location.hash =
-                '/login'
+              clearSession();
+
+              window.location.hash = "/login";
             }}
           >
             Sair
@@ -744,24 +603,18 @@ export default function DashboardPage({
                 className="text-xs text-muted underline underline-offset-4"
                 onClick={remote.reload}
               >
-                {remote.loading
-                  ? 'Atualizando…'
-                  : 'Atualizar dados'}
+                {remote.loading ? "Atualizando…" : "Atualizar dados"}
               </button>
             </div>
           )}
 
-          {data &&
-            remote.error && (
-              <ErrorNotice
-                message={remote.error}
-                retry={remote.reload}
-              />
-            )}
+          {data && remote.error && (
+            <ErrorNotice message={remote.error} retry={remote.reload} />
+          )}
 
           {content}
         </div>
       </main>
     </div>
-  )
+  );
 }
