@@ -51,7 +51,7 @@ namespace HybridLab.Infrastructure.Migrations
                     b.ToTable("BodyWeightEntries");
                 });
 
-            modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekPlan", b =>
+            modelBuilder.Entity("HybridLab.Domain.Entities.HybridTrainingPlan", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -70,6 +70,9 @@ namespace HybridLab.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
 
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
                     b.Property<int>("StudentId")
                         .HasColumnType("int");
 
@@ -79,7 +82,37 @@ namespace HybridLab.Infrastructure.Migrations
 
                     b.HasIndex("StudentId", "IsActive");
 
-                    b.ToTable("HybridWeekPlans", (string)null);
+                    b.ToTable("HybridTrainingPlans", (string)null);
+                });
+
+            modelBuilder.Entity("HybridLab.Domain.Entities.HybridTrainingWeek", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("HybridTrainingPlanId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int>("WeekNumber")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HybridTrainingPlanId", "WeekNumber")
+                        .IsUnique();
+
+                    b.ToTable("HybridTrainingWeeks", (string)null);
                 });
 
             modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekSession", b =>
@@ -93,7 +126,7 @@ namespace HybridLab.Infrastructure.Migrations
                     b.Property<int>("DayOfWeek")
                         .HasColumnType("int");
 
-                    b.Property<int>("HybridWeekPlanId")
+                    b.Property<int>("HybridTrainingWeekId")
                         .HasColumnType("int");
 
                     b.Property<string>("Notes")
@@ -121,7 +154,7 @@ namespace HybridLab.Infrastructure.Migrations
 
                     b.HasIndex("StrengthWorkoutDayId");
 
-                    b.HasIndex("HybridWeekPlanId", "DayOfWeek", "Sequence");
+                    b.HasIndex("HybridTrainingWeekId", "DayOfWeek", "Sequence");
 
                     b.ToTable("HybridWeekSessions", (string)null);
                 });
@@ -709,10 +742,10 @@ namespace HybridLab.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekPlan", b =>
+            modelBuilder.Entity("HybridLab.Domain.Entities.HybridTrainingPlan", b =>
                 {
                     b.HasOne("HybridLab.Domain.Entities.StudentProfile", "Student")
-                        .WithMany("HybridWeekPlans")
+                        .WithMany("HybridTrainingPlans")
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -720,11 +753,22 @@ namespace HybridLab.Infrastructure.Migrations
                     b.Navigation("Student");
                 });
 
+            modelBuilder.Entity("HybridLab.Domain.Entities.HybridTrainingWeek", b =>
+                {
+                    b.HasOne("HybridLab.Domain.Entities.HybridTrainingPlan", "HybridTrainingPlan")
+                        .WithMany("Weeks")
+                        .HasForeignKey("HybridTrainingPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("HybridTrainingPlan");
+                });
+
             modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekSession", b =>
                 {
-                    b.HasOne("HybridLab.Domain.Entities.HybridWeekPlan", "HybridWeekPlan")
+                    b.HasOne("HybridLab.Domain.Entities.HybridTrainingWeek", "HybridTrainingWeek")
                         .WithMany("Sessions")
-                        .HasForeignKey("HybridWeekPlanId")
+                        .HasForeignKey("HybridTrainingWeekId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -738,7 +782,7 @@ namespace HybridLab.Infrastructure.Migrations
                         .HasForeignKey("StrengthWorkoutDayId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("HybridWeekPlan");
+                    b.Navigation("HybridTrainingWeek");
 
                     b.Navigation("RunningWorkout");
 
@@ -829,7 +873,12 @@ namespace HybridLab.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekPlan", b =>
+            modelBuilder.Entity("HybridLab.Domain.Entities.HybridTrainingPlan", b =>
+                {
+                    b.Navigation("Weeks");
+                });
+
+            modelBuilder.Entity("HybridLab.Domain.Entities.HybridTrainingWeek", b =>
                 {
                     b.Navigation("Sessions");
                 });
@@ -841,7 +890,7 @@ namespace HybridLab.Infrastructure.Migrations
 
             modelBuilder.Entity("HybridLab.Domain.Entities.StudentProfile", b =>
                 {
-                    b.Navigation("HybridWeekPlans");
+                    b.Navigation("HybridTrainingPlans");
 
                     b.Navigation("RunningActivities");
 

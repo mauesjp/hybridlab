@@ -12,8 +12,7 @@ public class HybridWeekSessionInputDto
     public HybridSessionType SessionType { get; set; }
 
     [EnumDataType(typeof(TrainingPeriod))]
-    public TrainingPeriod Period { get; set; } =
-        TrainingPeriod.Unspecified;
+    public TrainingPeriod Period { get; set; } = TrainingPeriod.Unspecified;
 
     [Range(0, 100)]
     public int Sequence { get; set; }
@@ -26,26 +25,44 @@ public class HybridWeekSessionInputDto
     public string? Notes { get; set; }
 }
 
-public class CreateHybridWeekPlanDto
+public class HybridTrainingWeekInputDto
 {
-    [Required]
-    [MaxLength(150)]
-    public string Name { get; set; } = string.Empty;
+    [Range(1, 260)]
+    public int WeekNumber { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    [MaxLength(150)]
+    public string? Name { get; set; }
+
+    [MaxLength(1000)]
+    public string? Notes { get; set; }
 
     public List<HybridWeekSessionInputDto> Sessions { get; set; } = [];
 }
 
-public class UpdateHybridWeekPlanDto
+public class CreateHybridTrainingPlanDto
 {
     [Required]
     [MaxLength(150)]
     public string Name { get; set; } = string.Empty;
 
+    public DateOnly StartDate { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    public List<HybridTrainingWeekInputDto> Weeks { get; set; } = [];
+}
+
+public class UpdateHybridTrainingPlanDto
+{
+    [Required]
+    [MaxLength(150)]
+    public string Name { get; set; } = string.Empty;
+
+    public DateOnly StartDate { get; set; }
+
     public bool IsActive { get; set; }
 
-    public List<HybridWeekSessionInputDto> Sessions { get; set; } = [];
+    public List<HybridTrainingWeekInputDto> Weeks { get; set; } = [];
 }
 
 public class HybridWeekSessionResponseDto
@@ -69,17 +86,40 @@ public class HybridWeekSessionResponseDto
     public string? Notes { get; set; }
 }
 
-public class HybridWeekPlanResponseDto
+public class HybridTrainingWeekResponseDto
+{
+    public int Id { get; set; }
+
+    public int WeekNumber { get; set; }
+
+    public string? Name { get; set; }
+
+    public string? Notes { get; set; }
+
+    public DateOnly StartDate { get; set; }
+
+    public DateOnly EndDate { get; set; }
+
+    public List<HybridWeekSessionResponseDto> Sessions { get; set; } = [];
+}
+
+public class HybridTrainingPlanResponseDto
 {
     public int Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
 
+    public DateOnly StartDate { get; set; }
+
+    public DateOnly EndDate { get; set; }
+
+    public int TotalWeeks { get; set; }
+
     public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
-    public List<HybridWeekSessionResponseDto> Sessions { get; set; } = [];
+    public List<HybridTrainingWeekResponseDto> Weeks { get; set; } = [];
 }
 
 public class TodayHybridPlanResponseDto
@@ -93,6 +133,20 @@ public class TodayHybridPlanResponseDto
     public int? PlanId { get; set; }
 
     public string? PlanName { get; set; }
+
+    public DateOnly? PlanStartDate { get; set; }
+
+    public DateOnly? PlanEndDate { get; set; }
+
+    public int? WeekId { get; set; }
+
+    public int? WeekNumber { get; set; }
+
+    public int TotalWeeks { get; set; }
+
+    public bool IsBeforePlan { get; set; }
+
+    public bool IsAfterPlan { get; set; }
 
     public bool IsRestDay { get; set; }
 

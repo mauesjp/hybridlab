@@ -6,13 +6,14 @@ public class HybridWeekSession
 {
     public int Id { get; set; }
 
-    public int HybridWeekPlanId { get; set; }
+    public int HybridTrainingWeekId { get; set; }
 
     public DayOfWeek DayOfWeek { get; set; }
 
     public HybridSessionType SessionType { get; set; }
 
-    public TrainingPeriod Period { get; set; } = TrainingPeriod.Unspecified;
+    public TrainingPeriod Period { get; set; } =
+        TrainingPeriod.Unspecified;
 
     public int Sequence { get; set; }
 
@@ -22,7 +23,7 @@ public class HybridWeekSession
 
     public string? Notes { get; set; }
 
-    public HybridWeekPlan HybridWeekPlan { get; set; } = null!;
+    public HybridTrainingWeek HybridTrainingWeek { get; set; } = null!;
 
     public StrengthWorkoutDay? StrengthWorkoutDay { get; set; }
 

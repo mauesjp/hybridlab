@@ -24,7 +24,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<RunningWorkout> RunningWorkouts { get; set; } = null!;
     public DbSet<RunningWorkoutBlock> RunningWorkoutBlocks { get; set; } = null!;
     public DbSet<RunningActivity> RunningActivities { get; set; } = null!;
-    public DbSet<HybridWeekPlan> HybridWeekPlans { get; set; } = null!;
+    public DbSet<HybridTrainingPlan> HybridTrainingPlans { get; set; } = null!;
+    public DbSet<HybridTrainingWeek> HybridTrainingWeeks { get; set; } = null!;
     public DbSet<HybridWeekSession> HybridWeekSessions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -169,14 +170,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        builder.Entity<HybridWeekPlan>(entity =>
+        builder.Entity<HybridTrainingPlan>(entity =>
         {
-            entity.ToTable("HybridWeekPlans");
+            entity.ToTable("HybridTrainingPlans");
 
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.Name)
                 .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(x => x.StartDate)
+                .HasColumnType("date")
                 .IsRequired();
 
             entity.Property(x => x.IsActive)
@@ -194,13 +199,41 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             });
 
             entity.HasOne(x => x.Student)
-                .WithMany(x => x.HybridWeekPlans)
+                .WithMany(x => x.HybridTrainingPlans)
                 .HasForeignKey(x => x.StudentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasMany(x => x.Weeks)
+                .WithOne(x => x.HybridTrainingPlan)
+                .HasForeignKey(x => x.HybridTrainingPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<HybridTrainingWeek>(entity =>
+        {
+            entity.ToTable("HybridTrainingWeeks");
+
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.WeekNumber)
+                .IsRequired();
+
+            entity.Property(x => x.Name)
+                .HasMaxLength(150);
+
+            entity.Property(x => x.Notes)
+                .HasMaxLength(1000);
+
+            entity.HasIndex(x => new
+            {
+                x.HybridTrainingPlanId,
+                x.WeekNumber
+            })
+            .IsUnique();
+
             entity.HasMany(x => x.Sessions)
-                .WithOne(x => x.HybridWeekPlan)
-                .HasForeignKey(x => x.HybridWeekPlanId)
+                .WithOne(x => x.HybridTrainingWeek)
+                .HasForeignKey(x => x.HybridTrainingWeekId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -227,7 +260,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
             entity.HasIndex(x => new
             {
-                x.HybridWeekPlanId,
+                x.HybridTrainingWeekId,
                 x.DayOfWeek,
                 x.Sequence
             });

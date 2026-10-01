@@ -7,13 +7,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HybridLab.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddHybridWeekPlanning : Migration
+    public partial class AddHybridTrainingPlanning : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "HybridWeekPlans",
+                name: "HybridTrainingPlans",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -21,16 +21,42 @@ namespace HybridLab.Infrastructure.Migrations
                     StudentId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    StartDate = table.Column<DateOnly>(type: "date", nullable: false),
                     IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_HybridWeekPlans", x => x.Id);
+                    table.PrimaryKey("PK_HybridTrainingPlans", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_HybridWeekPlans_Students_StudentId",
+                        name: "FK_HybridTrainingPlans_Students_StudentId",
                         column: x => x.StudentId,
                         principalTable: "Students",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "HybridTrainingWeeks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    HybridTrainingPlanId = table.Column<int>(type: "int", nullable: false),
+                    WeekNumber = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Notes = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HybridTrainingWeeks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HybridTrainingWeeks_HybridTrainingPlans_HybridTrainingPlanId",
+                        column: x => x.HybridTrainingPlanId,
+                        principalTable: "HybridTrainingPlans",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -42,7 +68,7 @@ namespace HybridLab.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    HybridWeekPlanId = table.Column<int>(type: "int", nullable: false),
+                    HybridTrainingWeekId = table.Column<int>(type: "int", nullable: false),
                     DayOfWeek = table.Column<int>(type: "int", nullable: false),
                     SessionType = table.Column<int>(type: "int", nullable: false),
                     Period = table.Column<int>(type: "int", nullable: false),
@@ -56,9 +82,9 @@ namespace HybridLab.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_HybridWeekSessions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_HybridWeekSessions_HybridWeekPlans_HybridWeekPlanId",
-                        column: x => x.HybridWeekPlanId,
-                        principalTable: "HybridWeekPlans",
+                        name: "FK_HybridWeekSessions_HybridTrainingWeeks_HybridTrainingWeekId",
+                        column: x => x.HybridTrainingWeekId,
+                        principalTable: "HybridTrainingWeeks",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -77,19 +103,25 @@ namespace HybridLab.Infrastructure.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateIndex(
-                name: "IX_HybridWeekPlans_StudentId",
-                table: "HybridWeekPlans",
+                name: "IX_HybridTrainingPlans_StudentId",
+                table: "HybridTrainingPlans",
                 column: "StudentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_HybridWeekPlans_StudentId_IsActive",
-                table: "HybridWeekPlans",
+                name: "IX_HybridTrainingPlans_StudentId_IsActive",
+                table: "HybridTrainingPlans",
                 columns: new[] { "StudentId", "IsActive" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_HybridWeekSessions_HybridWeekPlanId_DayOfWeek_Sequence",
+                name: "IX_HybridTrainingWeeks_HybridTrainingPlanId_WeekNumber",
+                table: "HybridTrainingWeeks",
+                columns: new[] { "HybridTrainingPlanId", "WeekNumber" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_HybridWeekSessions_HybridTrainingWeekId_DayOfWeek_Sequence",
                 table: "HybridWeekSessions",
-                columns: new[] { "HybridWeekPlanId", "DayOfWeek", "Sequence" });
+                columns: new[] { "HybridTrainingWeekId", "DayOfWeek", "Sequence" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_HybridWeekSessions_RunningWorkoutId",
@@ -109,7 +141,10 @@ namespace HybridLab.Infrastructure.Migrations
                 name: "HybridWeekSessions");
 
             migrationBuilder.DropTable(
-                name: "HybridWeekPlans");
+                name: "HybridTrainingWeeks");
+
+            migrationBuilder.DropTable(
+                name: "HybridTrainingPlans");
         }
     }
 }
