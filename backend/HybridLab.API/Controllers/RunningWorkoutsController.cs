@@ -26,7 +26,8 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
             .AsNoTracking()
             .Include(x => x.Blocks)
             .Where(x => x.StudentId == student.Id)
-            .OrderBy(x => x.ScheduledDate)
+            .OrderBy(x => x.Name)
+            .ThenByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
 
         return Ok(
@@ -35,7 +36,9 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<RunningWorkoutResponseDto>> GetById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<RunningWorkoutResponseDto>> GetById(
+        int id,
+        CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
@@ -61,36 +64,36 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<RunningWorkoutResponseDto>> Create(CreateRunningWorkoutDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<RunningWorkoutResponseDto>> Create(
+        CreateRunningWorkoutDto dto,
+        CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
         if (student is null)
             return Unauthorized();
 
-        var blockValidation = ValidateBlocks(dto.Blocks);
+        var validationError = ValidateBlocks(dto.Blocks);
 
-        if (blockValidation is not null)
-            return BadRequest(blockValidation);
+        if (validationError is not null)
+            return BadRequest(validationError);
 
         var workout = new RunningWorkout
         {
             StudentId = student.Id,
             Name = dto.Name.Trim(),
-            ScheduledDate = dto.ScheduledDate.Date,
             Notes = NormalizeText(dto.Notes),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        for (var index = 0; index < dto.Blocks.Count; index++)
-        {
-            workout.Blocks.Add(
-                CreateBlock(
-                    dto.Blocks[index],
-                    index + 1
+            CreatedAt = DateTime.UtcNow,
+            Blocks = dto.Blocks
+                .Select(
+                    (block, index) =>
+                        CreateBlock(
+                            block,
+                            index
+                        )
                 )
-            );
-        }
+                .ToList()
+        };
 
         context.RunningWorkouts.Add(workout);
 
@@ -104,17 +107,20 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<RunningWorkoutResponseDto>> Update(int id, UpdateRunningWorkoutDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<RunningWorkoutResponseDto>> Update(
+        int id,
+        UpdateRunningWorkoutDto dto,
+        CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
         if (student is null)
             return Unauthorized();
 
-        var blockValidation = ValidateBlocks(dto.Blocks);
+        var validationError = ValidateBlocks(dto.Blocks);
 
-        if (blockValidation is not null)
-            return BadRequest(blockValidation);
+        if (validationError is not null)
+            return BadRequest(validationError);
 
         var workout = await context.RunningWorkouts
             .Include(x => x.Blocks)
@@ -129,24 +135,21 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
             return NotFound();
 
         workout.Name = dto.Name.Trim();
-        workout.ScheduledDate = dto.ScheduledDate.Date;
         workout.Notes = NormalizeText(dto.Notes);
 
         context.RunningWorkoutBlocks.RemoveRange(
             workout.Blocks
         );
 
-        workout.Blocks.Clear();
-
-        for (var index = 0; index < dto.Blocks.Count; index++)
-        {
-            workout.Blocks.Add(
-                CreateBlock(
-                    dto.Blocks[index],
-                    index + 1
-                )
-            );
-        }
+        workout.Blocks = dto.Blocks
+            .Select(
+                (block, index) =>
+                    CreateBlock(
+                        block,
+                        index
+                    )
+            )
+            .ToList();
 
         await context.SaveChangesAsync(cancellationToken);
 
@@ -156,7 +159,9 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(
+        int id,
+        CancellationToken cancellationToken)
     {
         var student = await GetCurrentStudent(cancellationToken);
 
@@ -181,7 +186,8 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
         return NoContent();
     }
 
-    private async Task<StudentProfile?> GetCurrentStudent(CancellationToken cancellationToken)
+    private async Task<StudentProfile?> GetCurrentStudent(
+        CancellationToken cancellationToken)
     {
         var userId =
             User.FindFirstValue(ClaimTypes.NameIdentifier) ??
@@ -192,17 +198,20 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
 
         return await context.Students
             .FirstOrDefaultAsync(
-                student => student.UserId == userId,
+                student =>
+                    student.UserId == userId,
                 cancellationToken
             );
     }
 
-    private static RunningWorkoutBlock CreateBlock(RunningWorkoutBlockInputDto dto, int sequence)
+    private static RunningWorkoutBlock CreateBlock(
+        RunningWorkoutBlockInputDto dto,
+        int index)
     {
         return new RunningWorkoutBlock
         {
             Type = dto.Type,
-            Sequence = sequence,
+            Sequence = index,
             DistanceKm = dto.DistanceKm,
             DurationSeconds = dto.DurationSeconds,
             TargetPaceSecondsPerKm = dto.TargetPaceSecondsPerKm,
@@ -211,7 +220,8 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
         };
     }
 
-    private static string? ValidateBlocks(IEnumerable<RunningWorkoutBlockInputDto> blocks)
+    private static string? ValidateBlocks(
+        IEnumerable<RunningWorkoutBlockInputDto> blocks)
     {
         foreach (var block in blocks)
         {
@@ -221,11 +231,42 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
             )
             {
                 return
-                    "Cada bloco precisa possuir uma distância ou uma duração.";
+                    "Cada bloco precisa possuir uma distância ou duração.";
             }
         }
 
         return null;
+    }
+
+    private static RunningWorkoutResponseDto MapWorkout(
+        RunningWorkout workout)
+    {
+        return new RunningWorkoutResponseDto
+        {
+            Id = workout.Id,
+            Name = workout.Name,
+            Notes = workout.Notes,
+            CreatedAt = workout.CreatedAt,
+
+            Blocks = workout.Blocks
+                .OrderBy(x => x.Sequence)
+                .Select(
+                    block =>
+                        new RunningWorkoutBlockResponseDto
+                        {
+                            Id = block.Id,
+                            Type = block.Type,
+                            Sequence = block.Sequence,
+                            DistanceKm = block.DistanceKm,
+                            DurationSeconds = block.DurationSeconds,
+                            TargetPaceSecondsPerKm =
+                                block.TargetPaceSecondsPerKm,
+                            Repetitions = block.Repetitions,
+                            Notes = block.Notes
+                        }
+                )
+                .ToList()
+        };
     }
 
     private static string? NormalizeText(string? value)
@@ -234,32 +275,5 @@ public class RunningWorkoutsController(AppDbContext context) : ControllerBase
             return null;
 
         return value.Trim();
-    }
-
-    private static RunningWorkoutResponseDto MapWorkout(RunningWorkout workout)
-    {
-        return new RunningWorkoutResponseDto
-        {
-            Id = workout.Id,
-            Name = workout.Name,
-            ScheduledDate = workout.ScheduledDate,
-            Notes = workout.Notes,
-            CreatedAt = workout.CreatedAt,
-
-            Blocks = workout.Blocks
-                .OrderBy(x => x.Sequence)
-                .Select(x => new RunningWorkoutBlockResponseDto
-                {
-                    Id = x.Id,
-                    Type = x.Type,
-                    Sequence = x.Sequence,
-                    DistanceKm = x.DistanceKm,
-                    DurationSeconds = x.DurationSeconds,
-                    TargetPaceSecondsPerKm = x.TargetPaceSecondsPerKm,
-                    Repetitions = x.Repetitions,
-                    Notes = x.Notes
-                })
-                .ToList()
-        };
     }
 }

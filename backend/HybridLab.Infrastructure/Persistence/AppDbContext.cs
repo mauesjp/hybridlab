@@ -14,20 +14,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<StudentProfile> Students { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
-
     public DbSet<StrengthPlan> StrengthPlans { get; set; } = null!;
     public DbSet<StrengthWorkoutDay> StrengthWorkoutDays { get; set; } = null!;
     public DbSet<PlannedExercise> PlannedExercises { get; set; } = null!;
-
     public DbSet<WorkoutSession> WorkoutSessions { get; set; } = null!;
     public DbSet<WorkoutExercise> WorkoutExercises { get; set; } = null!;
     public DbSet<WorkoutSet> WorkoutSets { get; set; } = null!;
-
     public DbSet<BodyWeightEntry> BodyWeightEntries { get; set; } = null!;
-
     public DbSet<RunningWorkout> RunningWorkouts { get; set; } = null!;
     public DbSet<RunningWorkoutBlock> RunningWorkoutBlocks { get; set; } = null!;
     public DbSet<RunningActivity> RunningActivities { get; set; } = null!;
+    public DbSet<HybridWeekPlan> HybridWeekPlans { get; set; } = null!;
+    public DbSet<HybridWeekSession> HybridWeekSessions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -77,21 +75,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasMaxLength(150)
                 .IsRequired();
 
-            entity.Property(x => x.ScheduledDate)
-                .HasColumnType("date")
-                .IsRequired();
-
             entity.Property(x => x.Notes)
                 .HasMaxLength(1000);
 
             entity.Property(x => x.CreatedAt)
                 .IsRequired();
 
-            entity.HasIndex(x => new
-            {
-                x.StudentId,
-                x.ScheduledDate
-            });
+            entity.HasIndex(x => x.StudentId);
 
             entity.HasOne(x => x.Student)
                 .WithMany(x => x.RunningWorkouts)
@@ -177,6 +167,84 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany(x => x.RunningActivities)
                 .HasForeignKey(x => x.StudentId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<HybridWeekPlan>(entity =>
+        {
+            entity.ToTable("HybridWeekPlans");
+
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Name)
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(x => x.IsActive)
+                .IsRequired();
+
+            entity.Property(x => x.CreatedAt)
+                .IsRequired();
+
+            entity.HasIndex(x => x.StudentId);
+
+            entity.HasIndex(x => new
+            {
+                x.StudentId,
+                x.IsActive
+            });
+
+            entity.HasOne(x => x.Student)
+                .WithMany(x => x.HybridWeekPlans)
+                .HasForeignKey(x => x.StudentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(x => x.Sessions)
+                .WithOne(x => x.HybridWeekPlan)
+                .HasForeignKey(x => x.HybridWeekPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<HybridWeekSession>(entity =>
+        {
+            entity.ToTable("HybridWeekSessions");
+
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.DayOfWeek)
+                .IsRequired();
+
+            entity.Property(x => x.SessionType)
+                .IsRequired();
+
+            entity.Property(x => x.Period)
+                .IsRequired();
+
+            entity.Property(x => x.Sequence)
+                .IsRequired();
+
+            entity.Property(x => x.Notes)
+                .HasMaxLength(500);
+
+            entity.HasIndex(x => new
+            {
+                x.HybridWeekPlanId,
+                x.DayOfWeek,
+                x.Sequence
+            });
+
+            entity.HasIndex(x => x.StrengthWorkoutDayId);
+
+            entity.HasIndex(x => x.RunningWorkoutId);
+
+            entity.HasOne(x => x.StrengthWorkoutDay)
+                .WithMany()
+                .HasForeignKey(x => x.StrengthWorkoutDayId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.RunningWorkout)
+                .WithMany()
+                .HasForeignKey(x => x.RunningWorkoutId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

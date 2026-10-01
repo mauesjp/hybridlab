@@ -30,8 +30,6 @@ public class CreateRunningWorkoutDto
     [MaxLength(150)]
     public string Name { get; set; } = string.Empty;
 
-    public DateTime ScheduledDate { get; set; }
-
     [MaxLength(1000)]
     public string? Notes { get; set; }
 
@@ -44,8 +42,6 @@ public class UpdateRunningWorkoutDto
     [Required]
     [MaxLength(150)]
     public string Name { get; set; } = string.Empty;
-
-    public DateTime ScheduledDate { get; set; }
 
     [MaxLength(1000)]
     public string? Notes { get; set; }
@@ -78,8 +74,6 @@ public class RunningWorkoutResponseDto
     public int Id { get; set; }
 
     public string Name { get; set; } = string.Empty;
-
-    public DateTime ScheduledDate { get; set; }
 
     public string? Notes { get; set; }
 

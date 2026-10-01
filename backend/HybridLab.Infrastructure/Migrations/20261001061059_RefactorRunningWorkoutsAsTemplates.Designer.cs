@@ -4,6 +4,7 @@ using HybridLab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HybridLab.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001061059_RefactorRunningWorkoutsAsTemplates")]
+    partial class RefactorRunningWorkoutsAsTemplates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -49,81 +52,6 @@ namespace HybridLab.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("BodyWeightEntries");
-                });
-
-            modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekPlan", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("varchar(150)");
-
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StudentId");
-
-                    b.HasIndex("StudentId", "IsActive");
-
-                    b.ToTable("HybridWeekPlans", (string)null);
-                });
-
-            modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekSession", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DayOfWeek")
-                        .HasColumnType("int");
-
-                    b.Property<int>("HybridWeekPlanId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<int>("Period")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("RunningWorkoutId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Sequence")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SessionType")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("StrengthWorkoutDayId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RunningWorkoutId");
-
-                    b.HasIndex("StrengthWorkoutDayId");
-
-                    b.HasIndex("HybridWeekPlanId", "DayOfWeek", "Sequence");
-
-                    b.ToTable("HybridWeekSessions", (string)null);
                 });
 
             modelBuilder.Entity("HybridLab.Domain.Entities.PlannedExercise", b =>
@@ -709,42 +637,6 @@ namespace HybridLab.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekPlan", b =>
-                {
-                    b.HasOne("HybridLab.Domain.Entities.StudentProfile", "Student")
-                        .WithMany("HybridWeekPlans")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Student");
-                });
-
-            modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekSession", b =>
-                {
-                    b.HasOne("HybridLab.Domain.Entities.HybridWeekPlan", "HybridWeekPlan")
-                        .WithMany("Sessions")
-                        .HasForeignKey("HybridWeekPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("HybridLab.Domain.Entities.RunningWorkout", "RunningWorkout")
-                        .WithMany()
-                        .HasForeignKey("RunningWorkoutId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("HybridLab.Domain.Entities.StrengthWorkoutDay", "StrengthWorkoutDay")
-                        .WithMany()
-                        .HasForeignKey("StrengthWorkoutDayId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("HybridWeekPlan");
-
-                    b.Navigation("RunningWorkout");
-
-                    b.Navigation("StrengthWorkoutDay");
-                });
-
             modelBuilder.Entity("HybridLab.Domain.Entities.RunningActivity", b =>
                 {
                     b.HasOne("HybridLab.Domain.Entities.StudentProfile", "Student")
@@ -829,11 +721,6 @@ namespace HybridLab.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("HybridLab.Domain.Entities.HybridWeekPlan", b =>
-                {
-                    b.Navigation("Sessions");
-                });
-
             modelBuilder.Entity("HybridLab.Domain.Entities.RunningWorkout", b =>
                 {
                     b.Navigation("Blocks");
@@ -841,8 +728,6 @@ namespace HybridLab.Infrastructure.Migrations
 
             modelBuilder.Entity("HybridLab.Domain.Entities.StudentProfile", b =>
                 {
-                    b.Navigation("HybridWeekPlans");
-
                     b.Navigation("RunningActivities");
 
                     b.Navigation("RunningWorkouts");

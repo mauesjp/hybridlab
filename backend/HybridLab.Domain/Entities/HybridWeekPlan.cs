@@ -1,6 +1,6 @@
 ﻿namespace HybridLab.Domain.Entities;
 
-public class RunningWorkout
+public class HybridWeekPlan
 {
     public int Id { get; set; }
 
@@ -8,11 +8,11 @@ public class RunningWorkout
 
     public string Name { get; set; } = string.Empty;
 
-    public string? Notes { get; set; }
+    public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public StudentProfile Student { get; set; } = null!;
 
-    public ICollection<RunningWorkoutBlock> Blocks { get; set; } = new List<RunningWorkoutBlock>();
+    public ICollection<HybridWeekSession> Sessions { get; set; } = new List<HybridWeekSession>();
 }
