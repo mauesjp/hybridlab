@@ -5,6 +5,10 @@ export type RunningWorkoutBlockType =
   | 3 // Recovery
   | 4 // Cooldown
 
+export type RunningActivitySource =
+  | 0 // Manual
+  | 1 // Strava
+
 export interface RunningWorkoutBlock {
   id: number
   type: RunningWorkoutBlockType
@@ -39,4 +43,26 @@ export interface RunningWorkoutInput {
   scheduledDate: string
   notes?: string | null
   blocks: RunningWorkoutBlockInput[]
+}
+
+export interface RunningActivity {
+  id: number
+  activityDate: string
+  distanceKm: number
+  durationSeconds: number
+  averagePaceSecondsPerKm: number
+  averageHeartRate: number | null
+  rpe: number | null
+  notes: string | null
+  source: RunningActivitySource
+  createdAt: string
+}
+
+export interface RunningActivityInput {
+  activityDate: string
+  distanceKm: number
+  durationSeconds: number
+  averageHeartRate?: number | null
+  rpe?: number | null
+  notes?: string | null
 }
