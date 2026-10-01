@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { physicalAssessmentService } from "../services/physicalAssessmentService";
 
+import PhysicalAssessmentAnalytics from "../components/PhysicalAssessmentAnalytics";
+
 import type {
   PhysicalAssessment,
   PhysicalAssessmentInput,
@@ -1167,6 +1169,7 @@ export default function PhysicalAssessmentPage() {
           </div>
         </aside>
       </section>
+      <PhysicalAssessmentAnalytics assessments={assessments} />
     </div>
   );
 }

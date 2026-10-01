@@ -48,9 +48,16 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .Property(entry => entry.WeightKg)
             .HasPrecision(5, 2);
 
-        builder.Entity<StudentProfile>()
-            .Property(student => student.GoalWeightKg)
-            .HasPrecision(5, 2);
+        builder.Entity<StudentProfile>(entity =>
+        {
+            entity.Property(student => student.GoalWeightKg)
+                .HasPrecision(5, 2);
+
+            entity.Property(student => student.BirthDate)
+                .HasColumnType("date");
+
+            entity.Property(student => student.BiologicalSex);
+        });
 
         builder.Entity<BodyWeightEntry>()
             .Property(entry => entry.RecordedAt)

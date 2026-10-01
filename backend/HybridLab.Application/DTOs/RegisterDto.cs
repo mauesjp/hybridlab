@@ -24,7 +24,7 @@ namespace HybridLab.Application.DTOs.Auth
         [Required(ErrorMessage = "O tipo de conta é obrigatório.")]
         public string AccountType { get; set; } = "Student";
 
-        public DateTime? BirthDate { get; set; }
+        public DateOnly? BirthDate { get; set; }
 
     }
 }

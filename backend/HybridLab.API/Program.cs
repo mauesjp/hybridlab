@@ -261,7 +261,7 @@ using (var scope = app.Services.CreateScope())
         {
             studentProfile = new StudentProfile
             {
-                BirthDate = new DateTime(2000, 1, 1),
+                BirthDate = new DateOnly(2000, 1, 1),
                 CreatedAt = DateTime.UtcNow,
                 DisplayName = "Aluno Teste",
                 UserId = testStudent.Id
