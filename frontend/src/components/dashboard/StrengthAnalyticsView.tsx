@@ -81,12 +81,12 @@ function EvolutionChart({
     .join(" ");
 
   return (
-    <div className="overflow-x-auto">
+    <div className="training-chart">
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="min-w-[620px] w-full"
+        className="w-full"
         role="img"
-        aria-label="Evolução do exercício"
+        aria-label={`Evolução por ${useWeight ? "carga em kg" : "repetições"}: de ${numberValue(pointsData[0].value)} a ${numberValue(pointsData.at(-1)!.value)}`}
       >
         <line
           x1={paddingX}
@@ -106,11 +106,11 @@ function EvolutionChart({
           strokeLinecap="round"
         />
 
-        {chartPoints.map((point) => (
+        {chartPoints.map((point, index) => (
           <g key={point.sessionId}>
-            <circle cx={point.x} cy={point.y} r="5" fill="currentColor" />
+            <circle cx={point.x} cy={point.y} r="5" fill="currentColor"><title>{dateValue(point.startedAt)}: {numberValue(point.value)} {useWeight ? "kg" : "reps"}</title></circle>
 
-            <text
+            {(index === 0 || index === chartPoints.length - 1) && <text
               x={point.x}
               y={height - 7}
               textAnchor="middle"
@@ -119,22 +119,25 @@ function EvolutionChart({
               opacity="0.65"
             >
               {dateValue(point.startedAt)}
-            </text>
+            </text>}
           </g>
         ))}
       </svg>
 
       <p className="mt-2 text-xs text-muted">
-        Evolução por {useWeight ? "carga (kg)" : "repetições"}.
+        Evolução por {useWeight ? "carga (kg)" : "repetições"}. Mínimo: {numberValue(min)} · Máximo: {numberValue(max)}.
       </p>
     </div>
   );
 }
 
-export default function StrengthAnalyticsView() {
+export default function StrengthAnalyticsView({ refreshKey }: { refreshKey?: unknown }) {
   const [selectedName, setSelectedName] = useState("");
 
-  const load = useCallback(() => service.strengthAnalytics(), []);
+  const load = useCallback(() => {
+    void refreshKey;
+    return service.strengthAnalytics();
+  }, [refreshKey]);
 
   const remote = useRemote(load);
 
@@ -160,11 +163,9 @@ export default function StrengthAnalyticsView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <p className="dash-eyebrow">Analytics</p>
-
-        <h2 className="mt-2 text-2xl font-semibold">Sua evolução</h2>
+        <h2 className="text-xl font-semibold">Analytics</h2>
 
         <p className="mt-2 text-sm text-muted">
           Acompanhe frequência, volume e progressão dos seus exercícios.
@@ -175,19 +176,19 @@ export default function StrengthAnalyticsView() {
         <ErrorNotice message={remote.error} retry={remote.reload} />
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="training-analytics-grid">
         <div className="dash-panel">
           <p className="text-sm text-muted">Treinos · 30 dias</p>
 
-          <p className="mt-4 text-3xl font-semibold">
+          <p className="training-number mt-4 text-3xl font-semibold">
             {data.workoutsLast30Days}
           </p>
         </div>
 
         <div className="dash-panel">
-          <p className="text-sm text-muted">Últimos 7 dias</p>
+          <p className="text-sm text-muted">Treinos · 7 dias</p>
 
-          <p className="mt-4 text-3xl font-semibold">
+          <p className="training-number mt-4 text-3xl font-semibold">
             {data.workoutsLast7Days}
           </p>
         </div>
@@ -195,13 +196,13 @@ export default function StrengthAnalyticsView() {
         <div className="dash-panel">
           <p className="text-sm text-muted">Séries · 30 dias</p>
 
-          <p className="mt-4 text-3xl font-semibold">{data.setsLast30Days}</p>
+          <p className="training-number mt-4 text-3xl font-semibold">{data.setsLast30Days}</p>
         </div>
 
         <div className="dash-panel">
           <p className="text-sm text-muted">Volume · 30 dias</p>
 
-          <p className="mt-4 text-3xl font-semibold">
+          <p className="training-number mt-4 text-3xl font-semibold">
             {numberValue(data.volumeLast30Days)} kg
           </p>
         </div>
@@ -214,10 +215,10 @@ export default function StrengthAnalyticsView() {
           </Empty>
         ) : (
           <div className="space-y-6">
-            <label className="block text-sm">
-              <span className="font-medium">Exercício</span>
+            <label className="block text-sm sm:max-w-md">
+              <span id="strength-exercise-label" className="font-medium">Exercício</span>
 
-              <select
+              <select aria-labelledby="strength-exercise-label"
                 value={selectedExercise?.name ?? ""}
                 onChange={(event) => setSelectedName(event.target.value)}
                 className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 outline-none"
@@ -232,7 +233,7 @@ export default function StrengthAnalyticsView() {
 
             {selectedExercise && (
               <>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="training-exercise-metrics grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-xl border border-border p-4">
                     <p className="text-xs uppercase tracking-[0.12em] text-muted">
                       Maior carga
@@ -311,7 +312,7 @@ export default function StrengthAnalyticsView() {
                         .map((performance) => (
                           <div
                             key={performance.sessionId}
-                            className="flex items-center justify-between gap-4 py-3"
+                            className="flex flex-wrap items-center justify-between gap-4 py-3"
                           >
                             <p className="text-sm text-muted">
                               {new Date(

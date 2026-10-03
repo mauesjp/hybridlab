@@ -10,6 +10,8 @@ import type {
   DashboardData,
 } from "../types/dashboard";
 
+import DashboardShell from "../components/dashboard/DashboardShell";
+import "../components/dashboard/TrainingPage.css";
 import PlansList from "../components/dashboard/PlansList";
 import PlanView from "../components/dashboard/PlanView";
 import SessionView from "../components/dashboard/SessionView";
@@ -118,7 +120,7 @@ export default function DashboardPage({ route }: { route: string }) {
   useEffect(() => {
     const changed = previousRoute.current !== route;
     previousRoute.current = route;
-    if (changed && ["", "#/dashboard", "#/login", "#/registro"].includes(route)) reload();
+    if (changed && ["", "#/dashboard", "#/login", "#/registro", "#/musculacao"].includes(route)) reload();
   }, [route, reload]);
 
   const data = remote.data;
@@ -210,6 +212,13 @@ export default function DashboardPage({ route }: { route: string }) {
     content = <PhysicalAssessmentPage />;
   } else {
     content = null;
+  }
+
+  if (route === "#/musculacao") {
+    return <DashboardShell title="Treinos" subtitle="Seu planejamento, sua frequência e cada evolução." displayName={data?.dashboard.profile.displayName} current="strength" loading={remote.loading} refresh={remote.reload} className="training-page">
+      {data && remote.error && <ErrorNotice message={remote.error} retry={remote.reload} />}
+      {content}
+    </DashboardShell>;
   }
 
   return (

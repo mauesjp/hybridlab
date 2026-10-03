@@ -1,20 +1,18 @@
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { useAction, useRemote } from '../../hooks/useRemote'
 import { dashboardService } from '../../services/dashboardService'
-import { clearSession, ApiError } from '../../services/api'
+import { ApiError } from '../../services/api'
 import { hybridWeekService } from '../../services/hybridWeekService'
 import { runningService } from '../../services/runningService'
 import { physicalAssessmentService } from '../../services/physicalAssessmentService'
 import { bodyCompositionService } from '../../services/bodyCompositionService'
 import type { ActiveSession, BodyWeightEntry, DashboardData } from '../../types/dashboard'
 import { localDateKey, weeklyProgress, weightSummary } from './overviewMetrics'
-import '../AuthLayout.css'
-import './DashboardOverview.css'
+import DashboardShell from './DashboardShell'
 
 const asset = (name: string) => `/dashboard/${name}`
 const number = (value: number | null | undefined, unit = '') => value == null ? '—' : `${value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}${unit}`
 const periods = ['Sem período', 'Manhã', 'Tarde', 'Noite']
-const links = [{ href: '#/semana', label: 'Minha semana' }, { href: '#/peso', label: 'Peso corporal' }, { href: '#/avaliacao', label: 'Avaliação física' }, { href: '#/historico', label: 'Histórico de treinos' }]
 
 interface Props {
   data: DashboardData | null
@@ -31,7 +29,6 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 export default function DashboardOverview({ data, active, weightEntries, goalWeight, loading, error, reload }: Props) {
-  const account = useRef<HTMLDialogElement>(null)
   const start = useAction()
   const load = useCallback(async () => {
     if (!data) return null
@@ -66,17 +63,7 @@ export default function DashboardOverview({ data, active, weightEntries, goalWei
   const loadingExtra = extra.loading || !extra.data
 
   return (
-    <div className="overview-page">
-      <div className="overview-container">
-        <header className="overview-header">
-          <a href="#/dashboard" aria-label="HybridLab — dashboard" className="overview-brand"><img src="/hybridlab-logo-color.png" alt="HybridLab" width="130" height="130" /></a>
-          <div className="overview-greeting"><h1>Bem-vindo de volta{name ? `, ${name}` : ''}</h1><p>Pronto para evoluir hoje?</p></div>
-          <div className="overview-tools">
-            <details className="overview-notifications"><summary aria-label="Notificações"><img src={asset('notification.png')} alt="" width="27" height="27" /></summary><p>As notificações ainda não estão disponíveis.</p></details>
-            <button type="button" aria-label="Abrir minha conta" onClick={() => account.current?.showModal()}><img className="overview-avatar" src={asset('avatar.png')} alt="" width="60" height="60" /></button>
-          </div>
-        </header>
-        <main>
+    <DashboardShell title={`Bem-vindo de volta${name ? `, ${name}` : ''}`} subtitle="Pronto para evoluir hoje?" displayName={data?.profile.displayName} current="dashboard" loading={loading || extra.loading} refresh={refresh}>
           <p className="overview-date">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           {!data ? <section className="overview-card overview-status" role={loading ? 'status' : 'alert'}>{loading ? 'Carregando seu Dashboard…' : <><p>{error || 'Não foi possível carregar seus dados.'}</p><button className="overview-action" onClick={reload}>Tentar novamente</button></>}</section> : <>
             {error && <p className="overview-error" role="alert">{error} <button onClick={reload}>Tentar novamente</button></p>}
@@ -105,16 +92,6 @@ export default function DashboardOverview({ data, active, weightEntries, goalWei
               <section className="overview-coming"><h2>Nutrição</h2><p>Em breve</p></section>
             </div>
           </>}
-        </main>
-      </div>
-      <nav className="overview-navigation" aria-label="Navegação principal">
-        <a href="#/dashboard" aria-label="Dashboard" aria-current="page" className="overview-nav-active"><img className="overview-nav-background" src={asset('nav-active.svg')} alt="" /><img className="overview-nav-icon" src={asset('home.png')} alt="" width="46" height="46" /></a>
-        <a href="#/musculacao" aria-label="Musculação"><img className="overview-nav-background" src={asset('nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('strength.png')} alt="" width="40" height="40" /></a>
-        <a href="#/corrida" aria-label="Corrida"><img className="overview-nav-background" src={asset('nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('running.png')} alt="" width="40" height="40" /></a>
-        <button type="button" disabled aria-label="Nutrição — em breve"><img className="overview-nav-background" src={asset('nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('nutrition.png')} alt="" width="40" height="40" /></button>
-        <button type="button" aria-label="Minha conta e módulos" onClick={() => account.current?.showModal()}><img className="overview-nav-background" src={asset('nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('profile.png')} alt="" width="40" height="40" /></button>
-      </nav>
-      <dialog ref={account} className="overview-account" aria-labelledby="account-heading"><div><h2 id="account-heading">{data?.profile.displayName || 'Minha conta'}</h2><button type="button" onClick={() => account.current?.close()} aria-label="Fechar minha conta">×</button></div><p>Conta pessoal</p><nav aria-label="Módulos da conta">{links.map(link => <a key={link.href} href={link.href} onClick={() => account.current?.close()}>{link.label} →</a>)}</nav><button className="overview-action" disabled={loading || extra.loading} onClick={refresh}>{loading || extra.loading ? 'Atualizando…' : 'Atualizar dados'}</button><button className="overview-logout" onClick={() => { clearSession(); window.location.hash = '#/login' }}>Sair da conta</button></dialog>
-    </div>
+    </DashboardShell>
   )
 }
