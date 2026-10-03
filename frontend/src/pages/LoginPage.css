@@ -1,0 +1,5 @@
+.login-form { display: flex; flex-direction: column; gap: 24px; }
+.login-recovery { display: block; margin: 12px 0 0 auto; font-size: 14px; font-weight: 500; line-height: 16px; color: var(--muted); }
+.login-recovery:hover { color: var(--foreground); }
+.login-register { margin-top: 24px; color: var(--muted); font-size: 14px; line-height: normal; text-align: center; }
+.login-recovery + .auth-notice:not([hidden]) { margin-top: 16px; }

@@ -23,7 +23,7 @@ function App() {
 
   return (
     <>
-      <header className="flex h-16 items-center justify-end border-b border-border bg-background px-6 sm:px-12"><ThemeToggle /></header>
+      {authenticated && !['', '#/dashboard', '#/login', '#/registro'].includes(hash) && <header className="flex h-16 items-center justify-end border-b border-border bg-background px-6 sm:px-12"><ThemeToggle /></header>}
       {authenticated ? <DashboardPage route={hash} /> : hash === '#/registro' ? <RegisterPage /> : <LoginPage />}
     </>
   )

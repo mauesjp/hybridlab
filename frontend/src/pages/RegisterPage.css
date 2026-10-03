@@ -1,0 +1,15 @@
+.register-page .auth-content { margin-top: 35px; }
+.register-form { display: flex; flex-direction: column; gap: 24px; }
+.register-login { margin-top: 24px; color: var(--muted); font-size: 14px; line-height: normal; text-align: center; }
+.register-date { position: relative; }
+.register-date .auth-input { min-width: 0; }
+.register-date-placeholder { position: absolute; left: 17px; top: 50%; transform: translateY(-50%); color: var(--disabled); font-size: 14px; pointer-events: none; }
+.register-date[data-empty="true"] .auth-input:not(:focus) { color: transparent; }
+.register-date:focus-within .register-date-placeholder { visibility: hidden; }
+.register-date .auth-input::-webkit-calendar-picker-indicator { opacity: 0; cursor: pointer; }
+.register-date:focus-within .auth-input::-webkit-calendar-picker-indicator,
+.register-date:hover .auth-input::-webkit-calendar-picker-indicator { opacity: 1; }
+
+@media (min-width: 768px) {
+  .register-page .auth-content { margin-top: 30px; }
+}

@@ -36,18 +36,37 @@ export async function register(
         "Content-Type": "application/json"
       },
 
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(15000),
     }
-  );
+  ).catch((error: unknown) => {
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new Error('O servidor demorou para responder. Tente novamente.')
+    }
+    throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.')
+  });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => null);
-
-    throw new Error(
-      error?.message ||
-      error ||
-      "Não foi possível criar a conta."
-    );
+    let message = 'Não foi possível criar a conta. Tente novamente.'
+    const text = await response.text()
+    if (text && response.status < 500) {
+      try {
+        const body: unknown = JSON.parse(text)
+        if (typeof body === 'string') {
+          message = body
+        } else if (body && typeof body === 'object') {
+          const error = body as { message?: unknown; errors?: unknown }
+          const details = error.errors && typeof error.errors === 'object'
+            ? Object.values(error.errors).flat().filter((value): value is string => typeof value === 'string')
+            : []
+          if (details.length) message = details.join(' ')
+          else if (typeof error.message === 'string') message = error.message
+        }
+      } catch {
+        if (!text.includes('<')) message = text
+      }
+    }
+    throw new Error(message)
   }
 
   return response.json();

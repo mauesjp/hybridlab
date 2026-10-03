@@ -1,0 +1,125 @@
+@font-face {
+  font-family: 'Montserrat Alternates';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/montserrat-alternates-400.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Montserrat Alternates';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/montserrat-alternates-500.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Montserrat Alternates';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/montserrat-alternates-600.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Montserrat Alternates';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/montserrat-alternates-700.ttf') format('truetype');
+}
+
+/* Shared authentication palette; Dashboard retains its current theme. */
+.auth-page {
+  --background: #080b12;
+  --surface: #0e1420;
+  --card: #121c2e;
+  --primary: #1e3a5f;
+  --accent: #3e6696;
+  --foreground: #f5f7fa;
+  --muted: #9ca6b5;
+  --border: #252d39;
+  --disabled: #555e6c;
+  color-scheme: dark;
+  min-height: 100svh;
+  padding: 48px 24px 48px;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Montserrat Alternates', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.auth-brand { display: block; flex: none; width: 130px; height: 130px; }
+.auth-brand img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.auth-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 490px;
+  height: 99px;
+  flex: none;
+  margin-top: 24px;
+  text-align: center;
+}
+.auth-header h1, .auth-header p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-height: 66px;
+  width: 100%;
+  line-height: normal;
+}
+.auth-header h1 { margin-bottom: -20px; font-size: 28px; font-weight: 700; }
+.auth-header p { font-size: 14px; font-weight: 400; color: var(--muted); }
+.auth-content { width: 100%; max-width: 400px; margin-top: 43px; }
+.auth-page .auth-label { margin-bottom: 8px; font-size: 14px; font-weight: 500; line-height: 16px; color: var(--muted); }
+.auth-page .auth-input {
+  display: block;
+  width: 100%;
+  height: 52px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: normal;
+}
+.auth-page .auth-input::placeholder { color: var(--disabled); opacity: 1; }
+.auth-page .auth-input:focus { border-color: var(--accent); }
+.auth-page :focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.auth-password { position: relative; }
+.auth-password:has(.auth-password-toggle) .auth-input { padding-right: 88px; }
+.auth-password-toggle { position: absolute; top: 4px; right: 8px; min-height: 44px; padding: 0 8px; font-size: 12px; color: var(--muted); }
+.auth-password-toggle:hover { color: var(--foreground); }
+.auth-page .auth-primary {
+  min-height: 52px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--primary);
+  color: var(--foreground);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: normal;
+}
+.auth-page .auth-primary:hover:not(:disabled) { background: var(--accent); }
+.auth-page .auth-primary:disabled { opacity: 0.65; cursor: wait; }
+.auth-page .auth-link { color: var(--foreground); font-weight: 600; text-decoration: none; }
+.auth-page .auth-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.auth-notice { border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; background: var(--card); font-size: 14px; line-height: 1.6; }
+
+@media (min-width: 768px) {
+  .auth-page { padding-top: 12px; }
+  .auth-brand { width: 200px; height: 200px; }
+  .auth-header { margin-top: 16px; }
+  .auth-header h1 { font-size: 32px; }
+  .auth-header p { font-size: 16px; }
+  .auth-content { margin-top: 30px; }
+}
+@media (max-width: 359px) {
+  .auth-header h1 { font-size: 24px; }
+  .auth-header p { font-size: 12px; }
+}
