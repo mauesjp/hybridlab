@@ -2,9 +2,9 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { dashboardService as service } from '../../services/dashboardService'
 import { useAction } from '../../hooks/useRemote'
-import type { PlannedExercise, WorkoutDay } from '../../types/dashboard'
+import type { PlannedExercise, SessionSummary, WorkoutDay } from '../../types/dashboard'
 import { ConfirmButton, ErrorNotice, Field } from './UI'
-import { numberValue, optionalNumber } from './format'
+import { dateTime, numberValue, optionalNumber } from './format'
 
 export function DayForm({ planId, day, nextOrder, onSaved, onCancel }: { planId: number; day?: WorkoutDay; nextOrder: number; onSaved: () => void; onCancel: () => void }) {
   const action = useAction()
@@ -39,13 +39,14 @@ export function ExerciseForm({ dayId, exercise, nextOrder, onSaved, onCancel }: 
   </fieldset></form>
 }
 
-export function DayCard({ day, planId, editable, canStart, onSaved, onStart, starting }: { day: WorkoutDay; planId: number; editable: boolean; canStart: boolean; onSaved: () => void; onStart: () => void; starting: boolean }) {
+export function DayCard({ day, planId, editable, canStart, onSaved, onStart, starting, dayLabel, lastSession }: { day: WorkoutDay; planId: number; editable: boolean; canStart: boolean; onSaved: () => void; onStart: () => void; starting: boolean; dayLabel?: string; lastSession?: SessionSummary }) {
   const [editDay, setEditDay] = useState(false)
   const [editExercise, setEditExercise] = useState<number | 'new' | null>(null)
   const action = useAction()
   const nextOrder = Math.max(0, ...day.exercises.map(e => e.order)) + 1
   return <section className="dash-panel">
-    <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="dash-eyebrow">Dia {day.order.toString().padStart(2, '0')}</p><h3 className="text-xl font-semibold">{day.name}</h3></div>{canStart && <button className="dash-primary" disabled={starting || !day.exercises.length} onClick={onStart}>{starting ? 'Iniciando…' : 'Iniciar treino →'}</button>}</div>
+    <div className="plan-workout-heading flex flex-wrap items-center justify-between gap-3"><div><p className="dash-eyebrow">{dayLabel ?? `Dia ${day.order.toString().padStart(2, '0')}`}</p><h3 className="text-xl font-semibold">{day.name}</h3><p className="mt-2 text-sm text-muted">{day.exercises.length} exercícios · {day.exercises.reduce((sum, exercise) => sum + exercise.targetSets, 0)} séries</p></div>{canStart && <button className="dash-primary" disabled={starting || !day.exercises.length} onClick={onStart}>{starting ? 'Iniciando…' : 'Iniciar treino →'}</button>}</div>
+    {lastSession && <a className="plan-last-session auth-link text-xs" href={`#/treino/${lastSession.id}`}>Última execução registrada: {dateTime(lastSession.startedAt)}{lastSession.status === 2 ? ' · Parcial' : ''} →</a>}
     {editable && <div className="mt-4 flex flex-wrap gap-2"><button className="dash-secondary" onClick={() => setEditDay(!editDay)}>Editar dia</button><ConfirmButton label="Remover dia" message={`Remover “${day.name}” e todos os seus exercícios deste rascunho?`} disabled={action.busy} onConfirm={() => void action.run(() => service.deleteDay(day.id), onSaved)} /></div>}
     {editDay && editable && <DayForm day={day} planId={planId} nextOrder={day.order} onCancel={() => setEditDay(false)} onSaved={() => { setEditDay(false); onSaved() }} />}
     <ErrorNotice message={action.error} />
