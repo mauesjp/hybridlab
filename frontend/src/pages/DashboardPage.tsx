@@ -169,6 +169,8 @@ export default function DashboardPage({ route }: { route: string }) {
 
   const currentNav = planMatch || sessionMatch ? "#/musculacao" : route;
 
+  if (route === "#/corrida" || route.startsWith("#/corrida/")) return <RunningPage key={route} route={route} />;
+
   const isOverview = !planMatch && !sessionMatch && !nav.slice(1).some(item => item.href === route);
   if (isOverview) {
     return <DashboardOverview data={data?.dashboard ?? null} active={data?.active ?? null} weightEntries={data?.weightEntries ?? []} goalWeight={data?.goalWeight ?? null} loading={remote.loading} error={remote.error} reload={remote.reload} />;
@@ -202,8 +204,7 @@ export default function DashboardPage({ route }: { route: string }) {
     content = <HybridWeekPage />;
   } else if (route === "#/musculacao") {
     content = <PlansList data={data.dashboard} onChanged={remote.reload} />;
-  } else if (route === "#/corrida") {
-    content = <RunningPage />;
+
   } else if (route === "#/historico") {
     content = <History data={data.dashboard} />;
   } else if (route === "#/peso") {

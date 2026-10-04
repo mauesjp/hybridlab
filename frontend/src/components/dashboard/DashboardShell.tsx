@@ -5,7 +5,7 @@ import '../AuthLayout.css'
 import './DashboardOverview.css'
 const asset = (name: string) => `/dashboard/${name}`
 const links = [{ href: '#/semana', label: 'Minha semana' }, { href: '#/peso', label: 'Peso corporal' }, { href: '#/avaliacao', label: 'Avaliação física' }, { href: '#/historico', label: 'Histórico de treinos' }]
-interface Props { children: ReactNode; title: string; subtitle: string; displayName?: string; current: 'dashboard' | 'strength'; loading: boolean; refresh: () => void; className?: string }
+interface Props { children: ReactNode; title: string; subtitle: string; displayName?: string; current: 'dashboard' | 'strength' | 'running'; loading: boolean; refresh: () => void; className?: string }
 export default function DashboardShell({ children, title, subtitle, displayName, current, loading, refresh, className = '' }: Props) {
  const account = useRef<HTMLDialogElement>(null)
  return <div className={`overview-page ${className}`}><div className="overview-container">
@@ -21,7 +21,7 @@ export default function DashboardShell({ children, title, subtitle, displayName,
       <nav className="overview-navigation" aria-label="Navegação principal">
         <a href="#/dashboard" aria-label="Dashboard" aria-current={current === 'dashboard' ? 'page' : undefined} className={current === 'dashboard' ? 'overview-nav-active' : undefined}><img className="overview-nav-background" src={asset(current === 'dashboard' ? 'nav-active.svg' : 'nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('home.png')} alt="" width="46" height="46" /></a>
         <a href="#/musculacao" aria-label="Treinos" aria-current={current === 'strength' ? 'page' : undefined} className={current === 'strength' ? 'overview-nav-active' : undefined}><img className="overview-nav-background" src={asset(current === 'strength' ? 'nav-active.svg' : 'nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('strength.png')} alt="" width="40" height="40" /></a>
-        <a href="#/corrida" aria-label="Corrida"><img className="overview-nav-background" src={asset('nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('running.png')} alt="" width="40" height="40" /></a>
+        <a href="#/corrida" aria-label="Corrida" aria-current={current === 'running' ? 'page' : undefined} className={current === 'running' ? 'overview-nav-active' : undefined}><img className="overview-nav-background" src={asset(current === 'running' ? 'nav-active.svg' : 'nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('running.png')} alt="" width="40" height="40" /></a>
         <button type="button" disabled aria-label="Nutrição — em breve"><img className="overview-nav-background" src={asset('nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('nutrition.png')} alt="" width="40" height="40" /></button>
         <button type="button" aria-label="Minha conta e módulos" onClick={() => account.current?.showModal()}><img className="overview-nav-background" src={asset('nav-default.svg')} alt="" /><img className="overview-nav-icon" src={asset('profile.png')} alt="" width="40" height="40" /></button>
       </nav>
