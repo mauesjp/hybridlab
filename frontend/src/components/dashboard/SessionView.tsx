@@ -5,6 +5,7 @@ import {
   useState
 } from 'react'
 import type { FormEvent } from 'react'
+import './SessionView.css'
 import { dashboardService as service } from '../../services/dashboardService'
 import { useAction, useRemote } from '../../hooks/useRemote'
 import type {
@@ -52,7 +53,7 @@ function QuickButtons({
     return null
   }
   return (
-    <div className="mt-2 flex flex-wrap gap-2">
+    <div className="session-suggestions">
       {values.map(value => (
         <button
           key={value}
@@ -240,7 +241,7 @@ function ExerciseLog({
               .toString()
               .padStart(2, '0')}
           </p>
-          <h2 className="text-xl font-semibold">
+          <h2 tabIndex={-1} className="text-xl font-semibold">
             {exercise.exerciseName}
           </h2>
         </div>
@@ -272,7 +273,7 @@ function ExerciseLog({
         </p>
       )}
       {exercise.sets.length > 0 && (
-        <div className="mt-5 overflow-x-auto">
+        <div className="session-set-history">
           <table className="w-full text-left text-sm">
             <caption className="sr-only">
               Séries registradas de{' '}
@@ -477,9 +478,9 @@ function ExerciseLog({
           >
             <fieldset
               disabled={action.busy}
-              className="space-y-4"
+              className="space-y-3"
             >
-              <legend className="mb-4 text-sm font-medium">
+              <legend className="mb-3 text-sm font-medium">
                 Registrar série{' '}
                 {nextSetNumber}
               </legend>
@@ -495,7 +496,7 @@ function ExerciseLog({
                   </p>
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="session-fields">
                 <div>
                   <Field
                     label="Carga (kg)"
@@ -723,7 +724,57 @@ export default function SessionView({
     [id]
   )
   const remote = useRemote(load)
+  const hasData = remote.data !== null
   const action = useAction()
+  const [activeIndex, setActiveIndex] = useState(0)
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
+  const activeIndexRef = useRef(0)
+  const carouselWidthRef = useRef(0)
+  const focusNextRef = useRef(false)
+  const navigate = useCallback((index: number) => {
+    const carousel = carouselRef.current
+    if (!carousel) return
+    carousel.scrollTo({ left: index * carousel.clientWidth, behavior: 'instant' })
+    setActiveIndex(index)
+    activeIndexRef.current = index
+  }, [])
+  // Keep the footer's confirmation and wrapped text clear of both content and navigation.
+  useEffect(() => {
+    const footer = footerRef.current
+    const page = footer?.closest<HTMLElement>('.session-page')
+    if (!footer || !page) return
+    const observer = new ResizeObserver(() => {
+      page.style.setProperty('--session-footer-height', footer.offsetHeight + 'px')
+    })
+    observer.observe(footer)
+    return () => { observer.disconnect(); page.style.removeProperty('--session-footer-height') }
+  }, [remote.data?.session.finishedAt])
+  useEffect(() => {
+    const carousel = carouselRef.current
+    if (!carousel) return
+    carouselWidthRef.current = carousel.clientWidth
+    const observer = new ResizeObserver(() => {
+      carouselWidthRef.current = carousel.clientWidth
+      carousel.scrollTo({ left: activeIndexRef.current * carousel.clientWidth, behavior: 'instant' })
+    })
+    observer.observe(carousel)
+    return () => observer.disconnect()
+  }, [hasData])
+  useEffect(() => {
+    const carousel = carouselRef.current
+    const panel = carousel?.querySelector<HTMLElement>('.session-slide[data-active=true] > section')
+    if (!carousel || !panel) return
+    const observer = new ResizeObserver(() => {
+      carousel.style.setProperty('--active-slide-height', `${panel.offsetHeight + 8}px`)
+    })
+    observer.observe(panel)
+    if (focusNextRef.current) {
+      panel.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true })
+      focusNextRef.current = false
+    }
+    return () => observer.disconnect()
+  }, [activeIndex, hasData])
   const scrollTargetRef =
     useRef<ScrollTarget | null>(null)
   useEffect(() => {
@@ -750,27 +801,20 @@ export default function SessionView({
     ) {
       return
     }
-    const elementId =
-      scrollTarget.nextExerciseId !== null
-        ? `exercise-${scrollTarget.nextExerciseId}`
-        : 'finish-session'
-    requestAnimationFrame(() => {
-      const element =
-        document.getElementById(
-          elementId
-        )
-      element?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      })
-      scrollTargetRef.current = null
-    })
+    const carousel = carouselRef.current
+    const next = carousel?.querySelector<HTMLElement>(`#exercise-${scrollTarget.nextExerciseId}`)
+    if (carousel && next) {
+      focusNextRef.current = true
+      carousel.scrollTo({ left: next.offsetLeft, behavior: 'instant' })
+    } else {
+      footerRef.current?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
+    }
+    scrollTargetRef.current = null
   }, [remote.data])
-  if (remote.loading) {
+  if (remote.loading && !remote.data) {
     return <Loading />
   }
   if (
-    remote.error ||
     !remote.data
   ) {
     return (
@@ -817,19 +861,7 @@ export default function SessionView({
     remote.reload()
     onChanged()
   }
-  const orderedExercises = [
-    ...session.exercises
-  ].sort((a, b) => {
-    if (
-      a.isCompleted !==
-      b.isCompleted
-    ) {
-      return a.isCompleted
-        ? 1
-        : -1
-    }
-    return a.order - b.order
-  })
+  const orderedExercises = [...session.exercises].sort((a, b) => a.order - b.order)
   function exerciseFinished(
     completedExerciseId: number
   ) {
@@ -855,22 +887,22 @@ export default function SessionView({
     onChanged()
   }
   return (
-    <div className="space-y-6">
+    <div className="session-content">
       <a
         href="#/dashboard"
         className="auth-link text-sm"
       >
         ← Voltar ao início
       </a>
-      <Panel>
+      <div className="session-summary"><Panel>
         <Badge>{finished ? sessionStatusLabel(session.status) : 'Em andamento'}</Badge>
-        <h1 className="dash-title mt-4">
+        <h2 className="session-title">
           {finished
             ? isPartial
               ? 'Treino encerrado parcialmente.'
               : 'Treino concluído.'
-            : 'Uma série de cada vez.'}
-        </h1>
+            : 'Seu treino em andamento'}
+        </h2>
         <p className="mt-3 text-sm text-muted">
           Início: {dateTime(session.startedAt)}
           {session.finishedAt
@@ -896,44 +928,50 @@ export default function SessionView({
         >
           Consultar a versão do plano
         </a>
-        <ErrorNotice message={action.error} />
-      </Panel>
+      </Panel></div>
+      <ErrorNotice message={remote.error} retry={remote.reload} />
       {!session.exercises.length && (
         <Empty>
           Esta sessão não possui
           exercícios.
         </Empty>
       )}
-      {orderedExercises.map(
-        exercise => (
-          <div
-            key={exercise.id}
-            id={`exercise-${exercise.id}`}
-            className="scroll-mt-6"
-          >
-            <ExerciseLog
-              exercise={exercise}
-              previous={previousPerformance.find(
-                previous =>
-                  previous.workoutExerciseId ===
-                  exercise.id
-              )}
-              finished={finished}
-              onSaved={saved}
-              onFinished={
-                exerciseFinished
-              }
-            />
+      {totalExercises > 0 && <section aria-label="Exercícios da sessão" aria-roledescription="carrossel">
+        <div className="session-controls">
+          <p aria-live="polite" aria-atomic="true">Exercício {activeIndex + 1} de {totalExercises}</p>
+          <div className="flex gap-2">
+            <button className="dash-secondary" type="button" aria-label="Exercício anterior" disabled={activeIndex === 0} onClick={() => navigate(activeIndex - 1)}>←</button>
+            <button className="dash-secondary" type="button" aria-label="Próximo exercício" disabled={activeIndex >= totalExercises - 1} onClick={() => navigate(activeIndex + 1)}>→</button>
           </div>
-        )
-      )}
+        </div>
+        <div className="session-steps" aria-label="Progresso dos exercícios">
+          {orderedExercises.map((exercise, index) => <button key={exercise.id} type="button" aria-current={index === activeIndex ? 'step' : undefined} aria-label={`Exercício ${index + 1}: ${exercise.exerciseName}${exercise.isCompleted ? ', concluído' : ', pendente'}`} onClick={() => navigate(index)}>
+            <span>{exercise.isCompleted ? '✓' : index + 1}</span><span>{exercise.exerciseName}</span>
+          </button>)}
+        </div>
+        <div ref={carouselRef} className="session-carousel" onScroll={event => {
+          // Resizing can emit a scroll before ResizeObserver restores the selected slide.
+          if (event.currentTarget.clientWidth !== carouselWidthRef.current) return
+          const index = Math.max(0, Math.min(totalExercises - 1, Math.round(event.currentTarget.scrollLeft / event.currentTarget.clientWidth)))
+          activeIndexRef.current = index
+          setActiveIndex(index)
+        }}>
+          {orderedExercises.map((exercise, index) => (
+            <div key={exercise.id} id={`exercise-${exercise.id}`} className="session-slide" data-active={index === activeIndex} inert={index !== activeIndex} aria-hidden={index !== activeIndex} role="group" aria-roledescription="slide" aria-label={`Exercício ${index + 1} de ${totalExercises}`}>
+              <ExerciseLog exercise={exercise} previous={previousPerformance.find(previous => previous.workoutExerciseId === exercise.id)} finished={finished} onSaved={saved} onFinished={exerciseFinished} />
+            </div>
+          ))}
+        </div>
+      </section>}
       {!finished && (
         <div
+          ref={footerRef}
           id="finish-session"
-          className="scroll-mt-6"
+          className="session-footer"
         >
-          <Panel title="Concluir sessão">
-            <p className="mb-4 text-sm leading-6 text-muted">
+          <div className="session-footer-inner">
+            <div className="session-footer-progress"><strong>{completedExercises} de {totalExercises} exercícios concluídos</strong><span>{totalSets} séries registradas</span></div>
+            <p className="sr-only">
               {totalExercises === 0
                 ? 'Esta sessão não possui exercícios e não pode ser finalizada.'
                 : hasIncompleteExercises
@@ -959,7 +997,8 @@ export default function SessionView({
                 )
               }
             />
-          </Panel>
+            <ErrorNotice message={action.error} />
+          </div>
         </div>
       )}
     </div>

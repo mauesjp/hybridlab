@@ -215,8 +215,8 @@ export default function DashboardPage({ route }: { route: string }) {
     content = null;
   }
 
-  if (route === "#/musculacao" || planMatch) {
-    return <DashboardShell title={planMatch ? "Seu plano" : "Treinos"} subtitle={planMatch ? "Um treino de cada vez. Cada evolução conta." : "Seu planejamento, sua frequência e cada evolução."} displayName={data?.dashboard.profile.displayName} current="strength" loading={remote.loading} refresh={remote.reload} className={planMatch ? "training-page plan-page" : "training-page"}>
+  if (route === "#/musculacao" || planMatch || sessionMatch) {
+    return <DashboardShell title={sessionMatch ? "Sua sessão" : planMatch ? "Seu plano" : "Treinos"} subtitle={sessionMatch ? "Uma série de cada vez." : planMatch ? "Um treino de cada vez. Cada evolução conta." : "Seu planejamento, sua frequência e cada evolução."} displayName={data?.dashboard.profile.displayName} current="strength" loading={remote.loading} refresh={remote.reload} className={sessionMatch ? "training-page session-page" : planMatch ? "training-page plan-page" : "training-page"}>
       {data && remote.error && <ErrorNotice message={remote.error} retry={remote.reload} />}
       {content}
     </DashboardShell>;
