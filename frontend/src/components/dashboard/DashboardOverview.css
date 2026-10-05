@@ -31,6 +31,10 @@
 .overview-action:hover:not(:disabled) { background:var(--accent); }
 .overview-action:disabled { opacity:.65; cursor:wait; }
 .overview-session .overview-action { margin-top:auto; align-self:flex-end; }
+.overview-session-completed { outline:1px solid var(--accent); }
+.overview-completed-label { display:flex; align-items:center; gap:8px; margin:0 0 14px; font-size:13px; font-weight:600; }
+.overview-completed-label span { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:var(--primary); color:var(--foreground); }
+.overview-completion-note { color:var(--muted); font-size:12px; margin-bottom:12px; }
 .overview-resume { display:inline-block; margin-top:16px; font-size:13px; text-decoration:underline; }
 .overview-progress { min-height:260px; padding:18px 24px 30px; text-align:center; }
 .overview-progress h2 { font-size:20px; font-weight:600; }

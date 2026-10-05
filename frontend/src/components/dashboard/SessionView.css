@@ -1,4 +1,5 @@
 .session-page { --session-footer-height:96px; display:block; height:auto; overflow:visible; }
+body:has(.session-page) { min-width:0; }
 .session-page .overview-container { padding-top:16px; padding-bottom:calc(var(--session-footer-height) + 130px + env(safe-area-inset-bottom)); overflow:visible; }
 .session-page .overview-header { display:flex; min-height:80px; gap:20px; }
 .session-page .overview-brand img { width:80px; height:80px; }

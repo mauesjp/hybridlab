@@ -70,6 +70,7 @@ export interface DashboardData {
   profile: { id: number; displayName: string; role: Role }
   plans: PlanSummary[]
   recentSessions: SessionSummary[]
+  todaySessions?: SessionSummary[] | null
   completedSessions: number
   finishedSessions: number
   partialSessions: number

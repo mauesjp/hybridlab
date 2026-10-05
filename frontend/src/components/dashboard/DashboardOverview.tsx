@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useAction, useRemote } from '../../hooks/useRemote'
 import { dashboardService } from '../../services/dashboardService'
 import { ApiError } from '../../services/api'
@@ -7,7 +7,7 @@ import { runningService } from '../../services/runningService'
 import { physicalAssessmentService } from '../../services/physicalAssessmentService'
 import { bodyCompositionService } from '../../services/bodyCompositionService'
 import type { ActiveSession, BodyWeightEntry, DashboardData } from '../../types/dashboard'
-import { localDateKey, weeklyProgress, weightSummary } from './overviewMetrics'
+import { dailyWorkoutCompletion, localDateKey, weeklyProgress, weightSummary } from './overviewMetrics'
 import DashboardShell from './DashboardShell'
 
 const asset = (name: string) => `/dashboard/${name}`
@@ -30,6 +30,16 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 export default function DashboardOverview({ data, active, weightEntries, goalWeight, loading, error, reload }: Props) {
   const start = useAction()
+  useEffect(() => {
+    let date = localDateKey()
+    const checkDate = () => {
+      const current = localDateKey()
+      if (current !== date) { date = current; reload() }
+    }
+    const interval = window.setInterval(checkDate, 60_000)
+    window.addEventListener('focus', checkDate)
+    return () => { window.clearInterval(interval); window.removeEventListener('focus', checkDate) }
+  }, [reload])
   const load = useCallback(async () => {
     if (!data) return null
     const results = await Promise.allSettled([
@@ -54,6 +64,7 @@ export default function DashboardOverview({ data, active, weightEntries, goalWei
   }, [data])
   const extra = useRemote(load)
   const today = extra.data?.today
+  const completion = today && data ? dailyWorkoutCompletion(today, data.todaySessions ?? data.recentSessions, data.todaySessions != null) : null
   const week = extra.data?.plan?.weeks.find(week => week.id === today?.weekId || week.weekNumber === today?.weekNumber)
   const progress = week && data ? weeklyProgress(week, data.recentSessions, extra.data?.activities ?? []) : null
   const assessment = extra.data?.assessment
@@ -71,14 +82,19 @@ export default function DashboardOverview({ data, active, weightEntries, goalWei
               <section className="overview-card overview-training" aria-labelledby="today-heading">
                 <div className="overview-training-heading"><h2 id="today-heading">Treino de hoje</h2>{today?.weekNumber && <a href="#/semana">Semana {today.weekNumber} de {today.totalWeeks} · {today.planName}</a>}</div>
                 {loadingExtra ? <p className="overview-empty" role="status">Carregando os treinos de hoje…</p> : extra.data?.trainingError ? <div className="overview-empty" role="alert"><p>Não foi possível carregar seus treinos.</p><button onClick={extra.reload} className="overview-action">Tentar novamente</button></div> : today?.sessions.length && !today.isBeforePlan && !today.isAfterPlan ? <div className="overview-sessions">
-                  {today.sessions.map(session => <article className="overview-session" key={session.id}>
+                  {today.sessions.map(session => {
+                    const completedId = completion?.matches.get(session.id)
+                    return <article className={`overview-session${completedId !== undefined ? ' overview-session-completed' : ''}`} key={session.id}>
                     <div><p>{session.sessionType === 0 ? 'Musculação' : 'Corrida'}</p><span>{periods[session.period]}</span></div>
                     <h3>{session.sessionName || 'Treino planejado'}</h3>
-                    {session.sessionType === 0 && !active?.hasActiveSession && session.strengthWorkoutDayId !== null ? <button className="overview-action" disabled={start.busy} onClick={() => start.run(async () => { const response = await dashboardService.start(session.strengthWorkoutDayId!); window.location.hash = `#/treino/${response.id}`; reload() })}>{start.busy ? 'Iniciando…' : 'Começar treino'}</button> : <a className="overview-action" href={session.sessionType === 0 ? active?.hasActiveSession ? `#/treino/${active.sessionId}` : '#/musculacao' : '#/corrida'}>{session.sessionType === 0 && active?.hasActiveSession ? 'Retomar treino' : session.sessionType === 1 ? 'Abrir corrida' : 'Abrir musculação'}</a>}
-                  </article>)}
+                    {completedId !== undefined ? <><p className="overview-completed-label"><span aria-hidden="true">✓</span> Treino realizado</p><a className="overview-action" href={`#/treino/${completedId}`}>Ver treino realizado</a></> : <>
+                      {session.sessionType === 0 && completion?.limited && <p className="overview-completion-note">Não foi possível verificar todo o histórico de hoje.</p>}
+                      {session.sessionType === 0 && !active?.hasActiveSession && session.strengthWorkoutDayId !== null ? <button className="overview-action" disabled={start.busy || loading} onClick={() => start.run(async () => { const response = await dashboardService.start(session.strengthWorkoutDayId!); window.location.hash = `#/treino/${response.id}`; reload() })}>{start.busy ? 'Iniciando…' : 'Começar treino'}</button> : <a className="overview-action" href={session.sessionType === 0 ? active?.hasActiveSession ? `#/treino/${active.sessionId}` : '#/musculacao' : '#/corrida'}>{session.sessionType === 0 && active?.hasActiveSession ? 'Retomar treino' : session.sessionType === 1 ? 'Abrir corrida' : 'Abrir musculação'}</a>}
+                    </>}
+                  </article>})}
                 </div> : <div className="overview-empty"><h3>{!today?.hasActivePlan ? 'Organize sua semana' : today.isBeforePlan ? 'Seu ciclo começa em breve' : today.isAfterPlan ? 'Ciclo concluído' : 'Dia de descanso'}</h3><p>{!today?.hasActivePlan ? 'Combine musculação e corrida no seu planejamento.' : today.isBeforePlan ? 'Confira a data de início do seu planejamento.' : today.isAfterPlan ? 'Prepare seu próximo planejamento.' : 'Aproveite o dia para recuperar e evoluir.'}</p><a href="#/semana" className="overview-action">{!today?.hasActivePlan ? 'Criar planejamento' : 'Ver minha semana'}</a></div>}
                 {start.error && <p role="alert" className="overview-error">{start.error}</p>}
-                {active?.hasActiveSession && !today?.sessions.some(session => session.sessionType === 0) && <a href={`#/treino/${active.sessionId}`} className="overview-resume">Retomar treino em andamento →</a>}
+                {active?.hasActiveSession && !today?.sessions.some(session => session.sessionType === 0 && !completion?.matches.has(session.id)) && <a href={`#/treino/${active.sessionId}`} className="overview-resume">Retomar treino em andamento →</a>}
               </section>
               <section className="overview-card overview-progress" aria-labelledby="progress-heading">
                 <h2 id="progress-heading">Progresso semanal</h2>

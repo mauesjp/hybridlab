@@ -9,7 +9,12 @@ export const dashboardService = {
   updateBodyWeight: (id: number, body: BodyWeightInput) => api<BodyWeightEntry> (`/BodyWeight/${id}`, 'PUT', body),
   deleteBodyWeight: (id: number) => api(`/BodyWeight/${id}`, 'DELETE'),
   updateBodyWeightGoal: (goalWeightKg: number | null) => api<BodyWeightGoal>('/BodyWeight/goal','PUT',{ goalWeightKg }),
-  dashboard: () => api<DashboardData>('/Dashboard'),
+  dashboard: (date = new Date()) => {
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const end = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
+    const query = new URLSearchParams({ dayStart: start.toISOString(), dayEnd: end.toISOString() })
+    return api<DashboardData>(`/Dashboard?${query}`)
+  },
   plan: (id: number) => api<PlanSummary>(`/StrengthPlans/${id}`),
   fullPlan: (id: number) => api<PlanDetails>(`/StrengthPlans/${id}/full`),
   versions: (id: number) => api<PlanSummary[]>(`/StrengthPlans/${id}/versions`),

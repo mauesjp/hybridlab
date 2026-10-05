@@ -1,5 +1,5 @@
 import type { BodyWeightEntry, SessionSummary } from '../../types/dashboard'
-import type { HybridTrainingWeek } from '../../types/hybridWeek'
+import type { HybridTrainingWeek, TodayHybridPlan } from '../../types/hybridWeek'
 import type { RunningActivity } from '../../types/running'
 
 export function localDateKey(date = new Date()) {
@@ -14,6 +14,25 @@ function dateOnly(value: string) {
 function sessionDate(value: string) {
   const utc = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value) ? value : `${value}Z`
   return localDateKey(new Date(utc))
+}
+
+// A completed record satisfies only one planned occurrence of that workout/date.
+// A workout-day ID belongs to one plan version; unrelated workouts never match.
+export function dailyWorkoutCompletion(today: TodayHybridPlan, strength: SessionSummary[], completeHistory = true) {
+  const matches = new Map<number, number>()
+  const used = new Set<number>()
+  if (!today.hasActivePlan || today.isBeforePlan || today.isAfterPlan) return { matches, limited: false }
+  const date = today.date.slice(0, 10)
+  const ordered = [...strength].sort((a, b) => a.startedAt.localeCompare(b.startedAt) || a.id - b.id)
+  for (const slot of [...today.sessions].sort((a, b) => a.sequence - b.sequence || a.id - b.id)) {
+    if (slot.sessionType !== 0 || slot.strengthWorkoutDayId === null) continue
+    const match = ordered.find(entry => !used.has(entry.id) && entry.status === 1 && entry.finishedAt !== null &&
+      entry.strengthWorkoutDayId === slot.strengthWorkoutDayId && sessionDate(entry.startedAt) === date)
+    if (match) { used.add(match.id); matches.set(slot.id, match.id) }
+  }
+  const oldest = ordered[0]
+  const limited = !completeHistory && strength.length >= 20 && oldest !== undefined && sessionDate(oldest.startedAt) >= date
+  return { matches, limited }
 }
 
 export function weightSummary(entries: BodyWeightEntry[], today = localDateKey()) {

@@ -78,3 +78,19 @@ test('ações enviam os métodos, rotas e campos esperados pelo backend', async 
     ['/WorkoutSessions/4/finish', 'PUT', undefined],
   ])
 })
+
+test('Dashboard consulta o dia local com intervalo UTC e preserva mudança de horário', async () => {
+  const originalTZ = process.env.TZ
+  try {
+    process.env.TZ = 'America/New_York'
+    let requested
+    globalThis.fetch = async url => { requested = new URL(url); return json({ todaySessions: [] }) }
+    await service.dashboard(new Date(2026, 2, 8, 12))
+    assert.equal(requested.pathname, '/api/Dashboard')
+    assert.equal(requested.searchParams.get('dayStart'), '2026-03-08T05:00:00.000Z')
+    assert.equal(requested.searchParams.get('dayEnd'), '2026-03-09T04:00:00.000Z')
+  } finally {
+    if (originalTZ === undefined) delete process.env.TZ
+    else process.env.TZ = originalTZ
+  }
+})
