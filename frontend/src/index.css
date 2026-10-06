@@ -60,4 +60,12 @@
   .auth-link { @apply font-medium text-foreground underline decoration-muted underline-offset-4 hover:decoration-foreground; }
 }
 
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 
