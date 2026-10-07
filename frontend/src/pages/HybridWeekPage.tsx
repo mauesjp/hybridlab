@@ -1,3 +1,5 @@
+import WeekOverview from "../components/dashboard/WeekOverview";
+import type { DashboardData } from "../types/dashboard";
 import { useEffect, useMemo, useState } from "react";
 
 import { hybridWeekService } from "../services/hybridWeekService";
@@ -217,7 +219,8 @@ function isMonday(value: string) {
   return parseDateKey(value).getDay() === 1;
 }
 
-export default function HybridWeekPage() {
+export default function HybridWeekPage({ route, dashboard }: { route: string; dashboard: DashboardData }) {
+  const editing = route.includes("/editar/") || route.includes("/configurar/") || route === "#/semana/nova";
   const [plans, setPlans] = useState<HybridTrainingPlan[]>([]);
 
   const [options, setOptions] = useState<HybridWeekOptions>({
@@ -237,6 +240,7 @@ export default function HybridWeekPage() {
 
   const [selectedWeekNumber, setSelectedWeekNumber] = useState(1);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [saving, setSaving] = useState(false);
@@ -278,6 +282,7 @@ export default function HybridWeekPage() {
   }
 
   function startNewPlan() {
+    window.location.hash = "#/semana/nova";
     setPlanId(null);
 
     setPlanName("Meu planejamento híbrido");
@@ -295,6 +300,7 @@ export default function HybridWeekPage() {
   }
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
       try {
         setLoading(true);
@@ -302,35 +308,45 @@ export default function HybridWeekPage() {
 
         const [planData, availableOptions] = await Promise.all([
           hybridWeekService.getAll(),
-          hybridWeekService.getOptions(),
+          editing ? hybridWeekService.getOptions() : Promise.resolve({ strengthWorkouts: [], runningWorkouts: [] }),
         ]);
 
+        if (cancelled) return;
+        const requestedId = Number(route.split("/")[3]);
+        if (editing && requestedId && !planData.some(plan => plan.id === requestedId)) throw new Error("Planejamento não encontrado.");
         setPlans(planData);
 
         setOptions(availableOptions);
 
         const selected =
-          planData.find((plan) => plan.isActive) ?? planData[0] ?? null;
+          planData.find((plan) => plan.id === Number(route.split("/")[3])) ?? planData.find((plan) => plan.isActive) ?? planData[0] ?? null;
 
         if (selected) {
-          applyPlan(selected);
+          if (route !== "#/semana/nova") {
+            applyPlan(selected);
+            const number = Number(route.split("/")[4]);
+            if (selected.weeks.some(week => week.weekNumber === number)) setSelectedWeekNumber(number);
+          }
         }
       } catch (err) {
-        setError(
+        if (cancelled) return;
+        setLoadError(
           err instanceof Error
             ? err.message
             : "Não foi possível carregar seu planejamento híbrido.",
         );
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     void load();
-  }, []);
+    return () => { cancelled = true; };
+  }, [route, editing]);
 
   const selectedWeekStats = useMemo(() => {
-    if (!selectedWeek) {
+
+  if (!selectedWeek) {
       return {
         trainingDays: 0,
         restDays: 7,
@@ -696,6 +712,7 @@ export default function HybridWeekPage() {
       });
 
       setSuccess("Planejamento salvo com sucesso.");
+      window.location.hash = `#/semana/${saved.id}/${Math.min(selectedWeekNumber, saved.weeks.length)}`;
     } catch (err) {
       setError(
         err instanceof Error
@@ -757,14 +774,19 @@ export default function HybridWeekPage() {
     return null;
   }
 
+  if (loadError) return <div className="dash-panel" role="alert"><p>{loadError}</p><a className="dash-secondary mt-4" href="#/semana">Voltar às semanas</a><button className="dash-secondary mt-4" onClick={() => window.location.reload()}>Tentar novamente</button></div>;
+
+  if (!editing) return <WeekOverview plans={plans} route={route} dashboard={dashboard} onNew={startNewPlan} onEdit={(plan, week, configure) => { applyPlan(plan); setSelectedWeekNumber(week); window.location.hash = `#/semana/${configure ? "configurar" : "editar"}/${plan.id}/${week}`; }} />;
+
   return (
     <div className="space-y-8">
+      <a className="dash-secondary" href="#/semana">← Todas as semanas</a>
       <header>
         <p className="dash-eyebrow">Planejamento híbrido</p>
 
         <div className="mt-2 flex flex-wrap items-start justify-between gap-5">
           <div>
-            <h1 className="text-3xl font-semibold">Minha Semana</h1>
+            <h2 className="text-3xl font-semibold">{route.includes("/editar/") ? "Editar semana" : "Configurar planejamento"}</h2>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
               Organize ciclos de uma ou mais semanas combinando musculação e
@@ -796,7 +818,7 @@ export default function HybridWeekPage() {
               type="button"
               disabled={saving}
               onClick={() => void savePlan()}
-              className="rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-black disabled:opacity-50"
+              className="dash-primary"
             >
               {saving ? "Salvando..." : "Salvar planejamento"}
             </button>
@@ -816,7 +838,7 @@ export default function HybridWeekPage() {
         </div>
       )}
 
-      {plans.length > 0 && (
+      {!route.includes("/editar/") && plans.length > 0 && (
         <section className="dash-panel">
           <label className="block text-sm">
             <span className="font-medium">Planejamento</span>
@@ -845,7 +867,7 @@ export default function HybridWeekPage() {
         </section>
       )}
 
-      <section className="dash-panel">
+      {!route.includes("/editar/") && <section className="dash-panel">
         <div className="grid gap-5 lg:grid-cols-2">
           <label className="block text-sm">
             <span className="font-medium">Nome do planejamento</span>
@@ -898,7 +920,7 @@ export default function HybridWeekPage() {
             </span>
           )}
         </div>
-      </section>
+      </section>}
 
       <section className="dash-panel">
         <div className="flex flex-wrap items-center justify-between gap-4">
