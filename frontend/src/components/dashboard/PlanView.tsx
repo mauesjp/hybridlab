@@ -34,6 +34,13 @@ export default function PlanView({ id, dashboard, active, onChanged }: { id: num
   }, [dashboard, reload, reloadCalendar])
   const action = useAction()
   const [addDay, setAddDay] = useState(false)
+  const [mobileActions, setMobileActions] = useState(() => window.matchMedia("(max-width: 767px)").matches)
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)")
+    const update = () => setMobileActions(media.matches)
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const tabs = useRef<HTMLDivElement>(null)
   if (remote.loading) return <Loading />
@@ -66,7 +73,7 @@ export default function PlanView({ id, dashboard, active, onChanged }: { id: num
           <label className="plan-version">Histórico de versões<select value={id} onChange={event => { window.location.hash = `/plano/${event.target.value}` }}>
             {(!versions.some(version => version.id === id) ? [plan, ...versions] : versions).slice().sort((a, b) => b.versionNumber - a.versionNumber).map(version => <option key={version.id} value={version.id}>Versão {version.versionNumber} · {planStatus(version)}</option>)}
           </select></label>
-          {canManage && <details className="plan-actions"><summary className="dash-secondary" aria-label="Ações do plano">•••</summary><div className="plan-actions-menu">
+          {canManage && <details className="plan-actions" open={mobileActions || undefined}><summary className="dash-secondary" aria-label="Ações do plano">•••</summary><div className="plan-actions-menu">
             {editable ? <>
               <button className="dash-secondary" aria-expanded={addDay} onClick={() => setAddDay(!addDay)}>+ Adicionar dia</button>
               <ConfirmButton label="Publicar plano" message="Publicar esta versão? Ela ficará ativa e não poderá mais ser editada. O plano ativo anterior será preservado como histórico." disabled={action.busy} onConfirm={() => void action.run(() => service.publish(id), saved)} />
@@ -83,7 +90,7 @@ export default function PlanView({ id, dashboard, active, onChanged }: { id: num
     </Panel>
     {active?.hasActiveSession && canManage && <div className="plan-resume"><p>Você tem um treino em andamento.</p><a href={`#/treino/${active.sessionId}`} className="dash-primary">Retomar treino →</a></div>}
     {addDay && editable && <Panel><DayForm planId={id} nextOrder={Math.max(0, ...plan.days.map(d => d.order)) + 1} onCancel={() => setAddDay(false)} onSaved={() => { setAddDay(false); saved() }} /></Panel>}
-    {!selected ? <Empty>Este plano ainda não tem dias de treino.{editable ? ' Use o menu de ações para adicionar o primeiro dia.' : ''}</Empty> : <>
+    {!selected ? <Empty>Este plano ainda não tem dias de treino.{editable ? ' Use Adicionar dia para criar o primeiro treino.' : ''}</Empty> : <>
       <div className="plan-day-heading"><h2>Treinos do plano</h2><span>{selectedIndex + 1} de {details.days.length}</span></div>
       <div className="plan-day-navigation">
         <button className="dash-secondary plan-day-arrow" aria-label="Treino anterior" disabled={selectedIndex <= 0} onClick={() => selectDay(selectedIndex - 1)}>←</button>

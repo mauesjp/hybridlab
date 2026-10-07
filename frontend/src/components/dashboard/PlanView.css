@@ -42,3 +42,12 @@
   .plan-workout-heading { align-items:stretch; flex-direction:column; }
   .plan-workout-heading>.dash-primary { width:100%; }
 }
+
+@media(max-width:767px) {
+ .plan-actions { width:100%; }
+ .plan-actions>summary { display:none; }
+ .plan-actions-menu { position:static; display:flex; flex-wrap:wrap; width:100%; padding:0; border:0; background:transparent; gap:8px; }
+ .plan-actions-menu>button { flex:1 1 130px; min-height:44px; }
+ .plan-actions-menu>div { flex:1 1 100%; min-width:0; overflow-wrap:anywhere; }
+ .plan-controls { width:100%; min-width:0; }
+}
