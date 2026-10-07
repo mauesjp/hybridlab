@@ -242,7 +242,7 @@ function WeightProgressChart({
       <div className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="h-auto min-w-[620px] w-full"
+          className="h-auto w-full"
           role="img"
           aria-label="Gráfico de evolução do peso corporal"
         >
@@ -392,6 +392,8 @@ const inputClass =
   'mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none'
 
 export default function BodyWeightView() {
+  const [view, setView] = useState<"overview" | "record" | "goal">("overview")
+  const [historyLimit, setHistoryLimit] = useState(10)
   const [entries, setEntries] =
     useState<BodyWeightEntry[]>([])
 
@@ -565,6 +567,7 @@ export default function BodyWeightView() {
       )
 
       await load()
+      setView("overview")
     } catch (error) {
       setError(errorMessage(error))
     } finally {
@@ -754,24 +757,27 @@ export default function BodyWeightView() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="progress-toolbar">
+        <div>
         <p className="dash-eyebrow">
           EVOLUÇÃO CORPORAL
         </p>
 
-        <h1 className="mt-2 text-3xl font-semibold">
-          Peso corporal
-        </h1>
+        <h2 className="mt-2 text-3xl font-semibold">
+          Sua evolução
+        </h2>
 
         <p className="mt-3 text-sm text-muted">
           Registre suas pesagens e acompanhe sua evolução.
-        </p>
+        </p></div>
+        <div className="flex flex-wrap gap-2"><button className="dash-primary" onClick={() => setView(view === "record" ? "overview" : "record")}>{view === "record" ? "Voltar à evolução" : "Registrar pesagem"}</button><button className="dash-secondary" onClick={() => setView(view === "goal" ? "overview" : "goal")}>{view === "goal" ? "Voltar à evolução" : "Ajustar meta"}</button></div>
       </div>
 
       {error && (
         <ErrorNotice message={error} />
       )}
 
+      {view === "overview" && <>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Panel title="Peso atual">
           <p className="text-3xl font-semibold">
@@ -846,7 +852,8 @@ export default function BodyWeightView() {
         />
       </Panel>
 
-      <Panel title="Meta de peso">
+      </>}
+      {view === "goal" && <Panel title="Meta de peso">
         <form
           onSubmit={saveGoal}
           className="grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-end"
@@ -895,7 +902,8 @@ export default function BodyWeightView() {
         </form>
       </Panel>
 
-      <Panel title="Registrar pesagem">
+      }
+      {view === "record" && <Panel title="Registrar pesagem">
         <form
           onSubmit={createEntry}
           className="grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end"
@@ -953,14 +961,15 @@ export default function BodyWeightView() {
         </p>
       </Panel>
 
-      <Panel title="Histórico">
+      }
+      {view === "overview" && <Panel title="Histórico">
         {!entries.length ? (
           <Empty>
             Nenhuma pesagem registrada.
           </Empty>
         ) : (
           <div className="space-y-3">
-            {entries.map(entry => {
+            {[...entries].sort((a,b) => b.recordedAt.localeCompare(a.recordedAt)).slice(0,historyLimit).map(entry => {
               const editing =
                 editingId === entry.id
 
@@ -1072,7 +1081,8 @@ export default function BodyWeightView() {
             })}
           </div>
         )}
-      </Panel>
+        {entries.length > historyLimit && <button className="dash-secondary mt-4" onClick={() => setHistoryLimit(value => value+10)}>Mostrar mais pesagens</button>}
+      </Panel>}
     </div>
   )
 }
