@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { bodyCompositionService } from "../services/bodyCompositionService";
+import type { BodyCompositionResult } from "../types/bodyComposition";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { physicalAssessmentService } from "../services/physicalAssessmentService";
 
@@ -236,7 +238,10 @@ function bytesToSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default function PhysicalAssessmentPage() {
+export default function PhysicalAssessmentPage({ route }: { route: string }) {
+  const showForm = route === "#/avaliacao/nova" || route.includes("/editar/");
+  const showComparison = route === "#/avaliacao/comparacao";
+  const [composition, setComposition] = useState<BodyCompositionResult | null>(null);
   const [assessments, setAssessments] = useState<PhysicalAssessmentSummary[]>(
     [],
   );
@@ -285,99 +290,8 @@ export default function PhysicalAssessmentPage() {
     [assessments, selectedAssessment],
   );
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function initialize() {
-      try {
-        const data = await physicalAssessmentService.getAll();
-
-        if (cancelled) return;
-
-        setAssessments(data);
-
-        if (data.length > 0) {
-          const [assessment, assessmentPhotos] = await Promise.all([
-            physicalAssessmentService.getById(data[0].id),
-
-            physicalAssessmentService.getPhotos(data[0].id),
-          ]);
-
-          if (cancelled) return;
-
-          setSelectedAssessment(assessment);
-
-          setPhotos(assessmentPhotos);
-        }
-      } catch (error) {
-        if (cancelled) return;
-
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Não foi possível carregar as avaliações.",
-        );
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void initialize();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function openAssessment(id: number) {
-    setError(null);
-
-    try {
-      const [assessment, assessmentPhotos] = await Promise.all([
-        physicalAssessmentService.getById(id),
-
-        physicalAssessmentService.getPhotos(id),
-      ]);
-
-      setSelectedAssessment(assessment);
-
-      setPhotos(assessmentPhotos);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
-  }
-
-  function startNewAssessment() {
-    setEditingId(null);
-
-    setAssessmentDate(localDateKey());
-
-    setWeightKg("");
-    setHeightCm("");
-    setNotes("");
-
-    setTape(emptyTapeForm());
-
-    setUseSkinfolds(false);
-
-    setSkinfold(emptySkinfoldForm());
-
-    setSelectedAssessment(null);
-
-    setPhotos([]);
-
-    setError(null);
-    setSuccess(null);
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  }
-
-  function startEdit(assessment: PhysicalAssessment) {
+  const startEdit = useCallback((assessment: PhysicalAssessment) => {
+    window.location.hash = `#/avaliacao/editar/${assessment.id}`;
     setEditingId(assessment.id);
 
     setAssessmentDate(assessment.assessmentDate);
@@ -423,7 +337,98 @@ export default function PhysicalAssessmentPage() {
       top: 0,
       behavior: "smooth",
     });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function initialize() {
+      try {
+        setLoading(true);
+        const data = (await physicalAssessmentService.getAll()).sort((a,b) => b.assessmentDate.localeCompare(a.assessmentDate) || b.id-a.id);
+
+        if (cancelled) return;
+
+        setAssessments(data);
+
+        if (data.length > 0 && route !== "#/avaliacao/nova" && route !== "#/avaliacao/comparacao") {
+          const routeId = Number(route.split("/").at(-1));
+          const target = routeId || data[0].id;
+          const [assessment, assessmentPhotos] = await Promise.all([
+            physicalAssessmentService.getById(target),
+
+            physicalAssessmentService.getPhotos(target),
+          ]);
+
+          if (cancelled) return;
+
+          setSelectedAssessment(assessment);
+
+          setPhotos(assessmentPhotos);
+          if (route.includes("/editar/")) startEdit(assessment);
+        }
+      } catch (error) {
+        if (cancelled) return;
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar as avaliações.",
+        );
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void initialize();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [route, startEdit]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!selectedAssessment) return;
+    bodyCompositionService.getAssessmentComposition(selectedAssessment.id).then(value => { if (!cancelled) setComposition(value); }).catch(() => { if (!cancelled) setComposition(null); });
+    return () => { cancelled = true; };
+  }, [selectedAssessment]);
+
+  async function openAssessment(id: number) {
+    window.location.hash = `#/avaliacao/${id}`;
   }
+
+  function startNewAssessment() {
+    window.location.hash = "#/avaliacao/nova";
+    setEditingId(null);
+
+    setAssessmentDate(localDateKey());
+
+    setWeightKg("");
+    setHeightCm("");
+    setNotes("");
+
+    setTape(emptyTapeForm());
+
+    setUseSkinfolds(false);
+
+    setSkinfold(emptySkinfoldForm());
+
+    setSelectedAssessment(null);
+
+    setPhotos([]);
+
+    setError(null);
+    setSuccess(null);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
 
   function buildPayload(): PhysicalAssessmentInput | null {
     const parsedWeight = parseOptionalNumber(weightKg);
@@ -507,6 +512,7 @@ export default function PhysicalAssessmentPage() {
       setAssessments(updatedList);
 
       setPhotos(updatedPhotos);
+      window.location.hash = `#/avaliacao/editar/${saved.id}`;
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -548,7 +554,7 @@ export default function PhysicalAssessmentPage() {
       if (remaining.length > 0) {
         await openAssessment(remaining[0].id);
       } else {
-        startNewAssessment();
+        window.location.hash = "#/avaliacao";
       }
     } catch (err) {
       setError(getErrorMessage(err));
@@ -628,13 +634,9 @@ export default function PhysicalAssessmentPage() {
     }
   }
 
-  function photoForType(type: PhysicalAssessmentPhotoType) {
-    return photos.find((photo) => photo.type === type) ?? null;
-  }
-
-  if (loading && assessments.length === 0) {
+  if (loading) {
     return (
-      <div className="p-6 text-sm text-neutral-400">
+      <div className="p-6 text-sm text-muted">
         Carregando avaliações...
       </div>
     );
@@ -642,17 +644,18 @@ export default function PhysicalAssessmentPage() {
 
   return (
     <div className="space-y-6 pb-10">
-      <header className="flex flex-col gap-4 border-b border-neutral-800 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      {route !== "#/avaliacao" && <a className="dash-secondary" href="#/avaliacao">← Todas as avaliações</a>}
+      {!showForm && !showComparison && <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
             Evolução corporal
           </p>
 
-          <h1 className="mt-2 text-2xl font-semibold text-white">
-            Avaliação Física
-          </h1>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">
+            {showComparison ? "Comparação e evolução" : showForm ? (isEditing ? "Editar avaliação" : "Nova avaliação") : "Suas avaliações"}
+          </h2>
 
-          <p className="mt-2 max-w-2xl text-sm text-neutral-400">
+          <p className="mt-2 max-w-2xl text-sm text-muted">
             Registre peso, medidas, adipometria e fotos para acompanhar sua
             evolução.
           </p>
@@ -661,34 +664,34 @@ export default function PhysicalAssessmentPage() {
         <button
           type="button"
           onClick={startNewAssessment}
-          className="rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200"
+          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-accent"
         >
           Nova avaliação
         </button>
-      </header>
+      </header>}
 
       {error && (
         <div className="rounded-lg border border-red-900/70 bg-red-950/30 px-4 py-3 text-sm text-red-300">
           {error}
+          <button className="dash-secondary ml-3" onClick={() => window.location.reload()}>Tentar novamente</button>
         </div>
       )}
 
       {success && (
-        <div className="rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-neutral-200">
+        <div className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-foreground">
           {success}
         </div>
       )}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="space-y-6">
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-6">
+      {showComparison ? <PhysicalAssessmentAnalytics assessments={assessments} /> : <>
+        {showForm ? <div className="assessment-form">          <div className="rounded-[20px] border border-border bg-card p-4 sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-semibold text-foreground">
                   {isEditing ? "Editar avaliação" : "Nova avaliação"}
                 </h2>
 
-                <p className="mt-1 text-sm text-neutral-500">
+                <p className="mt-1 text-sm text-muted">
                   Campos de medidas são opcionais.
                 </p>
               </div>
@@ -696,14 +699,15 @@ export default function PhysicalAssessmentPage() {
               {isEditing && (
                 <button
                   type="button"
-                  onClick={startNewAssessment}
-                  className="text-sm text-neutral-400 transition hover:text-white"
+                  onClick={() => { window.location.hash = "#/avaliacao"; }}
+                  className="text-sm text-muted transition hover:text-foreground"
                 >
                   Cancelar edição
                 </button>
               )}
             </div>
 
+            <h3 className="mb-4">Dados gerais e composição corporal</h3><p className="progress-muted mb-4">Peso e altura alimentam os cálculos existentes. Gordura e massa magra são estimadas com o perfil e as sete dobras.</p>
             <div className="grid gap-4 sm:grid-cols-3">
               <Field>
                 <FieldLabel>Data</FieldLabel>
@@ -738,29 +742,16 @@ export default function PhysicalAssessmentPage() {
               </Field>
             </div>
 
-            <div className="mt-4">
-              <Field>
-                <FieldLabel>Observações</FieldLabel>
 
-                <textarea
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  rows={3}
-                  maxLength={2000}
-                  placeholder="Jejum, horário da avaliação, observações gerais..."
-                  className={`${inputClassName} resize-y`}
-                />
-              </Field>
-            </div>
           </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-6">
+          <div className="rounded-[20px] border border-border bg-card p-4 sm:p-6">
             <div className="mb-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
                 Fita métrica
               </p>
 
-              <h2 className="mt-2 text-lg font-semibold text-white">
+              <h2 className="mt-2 text-lg font-semibold text-foreground">
                 Circunferências
               </h2>
             </div>
@@ -784,18 +775,18 @@ export default function PhysicalAssessmentPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-6">
+          <div className="rounded-[20px] border border-border bg-card p-4 sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
                   Adipômetro
                 </p>
 
-                <h2 className="mt-2 text-lg font-semibold text-white">
+                <h2 className="mt-2 text-lg font-semibold text-foreground">
                   Dobras cutâneas
                 </h2>
 
-                <p className="mt-1 text-sm text-neutral-500">Opcional.</p>
+                <p className="mt-1 text-sm text-muted">Opcional.</p>
               </div>
 
               <button
@@ -803,8 +794,8 @@ export default function PhysicalAssessmentPage() {
                 onClick={() => setUseSkinfolds((value) => !value)}
                 className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
                   useSkinfolds
-                    ? "border-white bg-white text-black"
-                    : "border-neutral-700 text-neutral-300 hover:border-neutral-500"
+                    ? "border-accent bg-primary text-foreground"
+                    : "border-border text-foreground hover:border-border"
                 }`}
               >
                 {useSkinfolds ? "Adipometria ativa" : "Adicionar adipometria"}
@@ -832,12 +823,26 @@ export default function PhysicalAssessmentPage() {
             )}
           </div>
 
+          <div className="dash-panel"><h2 className="mb-4">Observações</h2>            <div className="mt-4">
+              <Field>
+                <FieldLabel>Observações</FieldLabel>
+
+                <textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="Jejum, horário da avaliação, observações gerais..."
+                  className={`${inputClassName} resize-y`}
+                />
+              </Field>
+            </div></div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               disabled={saving}
               onClick={() => void saveAssessment()}
-              className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving
                 ? "Salvando..."
@@ -850,125 +855,25 @@ export default function PhysicalAssessmentPage() {
               <button
                 type="button"
                 onClick={startNewAssessment}
-                className="rounded-lg border border-neutral-700 px-5 py-3 text-sm font-semibold text-neutral-300 transition hover:border-neutral-500 hover:text-white"
+                className="rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground transition hover:border-border hover:text-foreground"
               >
                 Nova avaliação
               </button>
             )}
           </div>
 
-          {selectedAssessment && (
-            <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-6">
-              <div className="mb-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
-                  Fotos de evolução
-                </p>
+{!selectedAssessment && <div className="dash-panel"><h2>Fotos</h2><p className="progress-muted">Salve a avaliação para enviar fotos. O envio precisa do registro salvo e mantém a privacidade atual.</p></div>}{selectedAssessment && <AssessmentPhotos photos={photos} editable={showForm} busyType={photoLoadingType} onUpload={uploadPhoto} onDelete={deletePhoto} />}
 
-                <h2 className="mt-2 text-lg font-semibold text-white">
-                  Registro visual
-                </h2>
-
-                <p className="mt-1 text-sm text-neutral-500">
-                  As fotos são opcionais e armazenadas de forma privada.
-                </p>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                {photoTypes.map((photoType) => {
-                  const photo = photoForType(photoType.type);
-
-                  const busy = photoLoadingType === photoType.type;
-
-                  return (
-                    <div
-                      key={photoType.type}
-                      className="overflow-hidden rounded-xl border border-neutral-800 bg-black"
-                    >
-                      <div className="flex aspect-[3/4] items-center justify-center overflow-hidden bg-neutral-950">
-                        {photo ? (
-                          <a
-                            href={photo.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="block h-full w-full"
-                          >
-                            <img
-                              src={photo.url}
-                              alt={photoType.label}
-                              className="h-full w-full object-cover"
-                            />
-                          </a>
-                        ) : (
-                          <span className="px-6 text-center text-sm text-neutral-600">
-                            Nenhuma foto
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="space-y-3 p-4">
-                        <div>
-                          <p className="font-medium text-white">
-                            {photoType.label}
-                          </p>
-
-                          {photo && (
-                            <p className="mt-1 text-xs text-neutral-500">
-                              {bytesToSize(photo.sizeBytes)}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <label className="cursor-pointer rounded-lg bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-neutral-200">
-                            {busy
-                              ? "Enviando..."
-                              : photo
-                                ? "Substituir"
-                                : "Enviar foto"}
-
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp"
-                              disabled={busy}
-                              onChange={(event) => {
-                                const file = event.target.files?.[0] ?? null;
-
-                                void uploadPhoto(photoType.type, file);
-
-                                event.target.value = "";
-                              }}
-                              className="hidden"
-                            />
-                          </label>
-
-                          {photo && (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() => void deletePhoto(photoType.type)}
-                              className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-semibold text-neutral-300 transition hover:border-red-800 hover:text-red-300"
-                            >
-                              Excluir
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {selectedAssessment && (
-            <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-6">
+</div> : <>
+          <div className="assessment-layout">          {selectedAssessment && (
+            <div className="assessment-detail dash-panel">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
-                    Detalhes
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                    {selectedAssessment.id === assessments[0]?.id ? "Última avaliação" : "Avaliação selecionada"}
                   </p>
 
-                  <h2 className="mt-2 text-xl font-semibold text-white">
+                  <h2 className="mt-2 text-xl font-semibold text-foreground">
                     {formatDate(selectedAssessment.assessmentDate)}
                   </h2>
                 </div>
@@ -977,7 +882,7 @@ export default function PhysicalAssessmentPage() {
                   <button
                     type="button"
                     onClick={() => startEdit(selectedAssessment)}
-                    className="rounded-lg border border-neutral-700 px-3 py-2 text-sm text-neutral-300 transition hover:border-neutral-500 hover:text-white"
+                    className="rounded-lg border border-border px-3 py-2 text-sm text-foreground transition hover:border-border hover:text-foreground"
                   >
                     Editar
                   </button>
@@ -1021,11 +926,17 @@ export default function PhysicalAssessmentPage() {
                 />
               </div>
 
-              <div className="mt-6">
-                <h3 className="text-sm font-semibold text-white">Medidas</h3>
+              <div className="mt-4 progress-grid">
+                <Metric label="IMC" value={formatNumber(composition?.assessmentId === selectedAssessment.id ? composition.bmi : null)} />
+                <Metric label="Gordura estimada" value={formatNumber(composition?.assessmentId === selectedAssessment.id ? composition.bodyFatPercentage : null, "%")} />
+                <Metric label="Massa magra estimada" value={formatNumber(composition?.assessmentId === selectedAssessment.id ? composition.leanMassKg : null, " kg")} />
+              </div>
+              <p className="progress-muted mt-3">Estimativas usam o protocolo existente de sete dobras e o perfil corporal. Valores indisponíveis aparecem como —.</p>
+              <details className="mt-6"><summary>Medidas e dobras cadastradas</summary><div>
+                <h3 className="text-sm font-semibold text-foreground">Medidas</h3>
 
                 <div className="mt-3 grid gap-x-8 gap-y-3 sm:grid-cols-2">
-                  {tapeFields.map((field) => (
+                  {tapeFields.filter(field => selectedAssessment.tapeMeasurements[field.key] !== null).map((field) => (
                     <MeasurementRow
                       key={field.key}
                       label={field.label}
@@ -1039,13 +950,13 @@ export default function PhysicalAssessmentPage() {
               </div>
 
               {selectedAssessment.skinfoldMeasurements && (
-                <div className="mt-7 border-t border-neutral-800 pt-6">
-                  <h3 className="text-sm font-semibold text-white">
+                <div className="mt-7 border-t border-border pt-6">
+                  <h3 className="text-sm font-semibold text-foreground">
                     Dobras cutâneas
                   </h3>
 
                   <div className="mt-3 grid gap-x-8 gap-y-3 sm:grid-cols-2">
-                    {skinfoldFields.map((field) => (
+                    {skinfoldFields.filter(field => selectedAssessment.skinfoldMeasurements?.[field.key] != null).map((field) => (
                       <MeasurementRow
                         key={field.key}
                         label={field.label}
@@ -1059,39 +970,40 @@ export default function PhysicalAssessmentPage() {
                 </div>
               )}
 
+              </details>
               {selectedAssessment.notes && (
-                <div className="mt-7 border-t border-neutral-800 pt-6">
-                  <h3 className="text-sm font-semibold text-white">
+                <div className="mt-7 border-t border-border pt-6">
+                  <h3 className="text-sm font-semibold text-foreground">
                     Observações
                   </h3>
 
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-neutral-400">
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">
                     {selectedAssessment.notes}
                   </p>
                 </div>
               )}
             </div>
-          )}
-        </div>
+          )}{selectedAssessment && <AssessmentPhotos photos={photos} editable={false} busyType={photoLoadingType} onUpload={uploadPhoto} onDelete={deletePhoto} />}
 
-        <aside>
-          <div className="sticky top-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4">
+</div>
+                  <section>
+          <div className="rounded-[20px] border border-border bg-card p-4">
             <div className="mb-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
                 Histórico
               </p>
 
-              <h2 className="mt-2 text-lg font-semibold text-white">
+              <h2 className="mt-2 text-lg font-semibold text-foreground">
                 Avaliações
               </h2>
             </div>
 
             {assessments.length === 0 ? (
-              <p className="py-6 text-center text-sm text-neutral-500">
+              <p className="py-6 text-center text-sm text-muted">
                 Nenhuma avaliação registrada.
               </p>
             ) : (
-              <div className="space-y-2">
+              <div className="progress-grid">
                 {assessments.map((assessment) => {
                   const active = selectedAssessment?.id === assessment.id;
 
@@ -1102,8 +1014,8 @@ export default function PhysicalAssessmentPage() {
                       onClick={() => void openAssessment(assessment.id)}
                       className={`w-full rounded-lg border p-3 text-left transition ${
                         active
-                          ? "border-white bg-white text-black"
-                          : "border-neutral-800 bg-black text-white hover:border-neutral-600"
+                          ? "border-accent bg-primary text-foreground"
+                          : "border-border bg-background text-foreground hover:border-border"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -1114,7 +1026,7 @@ export default function PhysicalAssessmentPage() {
 
                           <p
                             className={`mt-1 text-xs ${
-                              active ? "text-neutral-600" : "text-neutral-500"
+                              active ? "text-muted" : "text-muted"
                             }`}
                           >
                             {formatNumber(assessment.weightKg, " kg")}
@@ -1123,7 +1035,7 @@ export default function PhysicalAssessmentPage() {
 
                         <span
                           className={`text-xs ${
-                            active ? "text-neutral-600" : "text-neutral-500"
+                            active ? "text-muted" : "text-muted"
                           }`}
                         >
                           {assessment.photoCount} foto
@@ -1133,7 +1045,7 @@ export default function PhysicalAssessmentPage() {
 
                       <div
                         className={`mt-3 flex gap-3 text-xs ${
-                          active ? "text-neutral-600" : "text-neutral-500"
+                          active ? "text-muted" : "text-muted"
                         }`}
                       >
                         <span>
@@ -1148,7 +1060,7 @@ export default function PhysicalAssessmentPage() {
                       {assessment.hasSkinfoldMeasurements && (
                         <p
                           className={`mt-2 text-[11px] font-medium uppercase tracking-wide ${
-                            active ? "text-neutral-600" : "text-neutral-500"
+                            active ? "text-muted" : "text-muted"
                           }`}
                         >
                           Com adipometria
@@ -1161,26 +1073,27 @@ export default function PhysicalAssessmentPage() {
             )}
 
             {selectedSummary && (
-              <p className="mt-4 border-t border-neutral-800 pt-4 text-xs leading-5 text-neutral-600">
+              <p className="mt-4 border-t border-border pt-4 text-xs leading-5 text-muted">
                 O peso desta avaliação também fica sincronizado com o histórico
                 de peso corporal.
               </p>
             )}
           </div>
-        </aside>
-      </section>
-      <PhysicalAssessmentAnalytics assessments={assessments} />
+        </section>
+          <a className="dash-secondary" href="#/avaliacao/comparacao">Comparação e evolução →</a>
+        </>}
+      </>}
     </div>
   );
 }
 
 function Field({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-1.5">{children}</div>;
+  return <label className="block space-y-1.5">{children}</label>;
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="text-xs font-medium text-neutral-400">{children}</label>
+    <span className="text-xs font-medium text-muted">{children}</span>
   );
 }
 
@@ -1207,20 +1120,20 @@ function NumericInput({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-black p-3">
-      <p className="text-xs text-neutral-500">{label}</p>
+    <div className="rounded-lg border border-border bg-background p-3">
+      <p className="text-xs text-muted">{label}</p>
 
-      <p className="mt-1 text-lg font-semibold text-white">{value}</p>
+      <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
     </div>
   );
 }
 
 function MeasurementRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-neutral-900 pb-2 text-sm">
-      <span className="text-neutral-500">{label}</span>
+    <div className="flex items-center justify-between gap-4 border-b border-border pb-2 text-sm">
+      <span className="text-muted">{label}</span>
 
-      <span className="font-medium text-neutral-200">{value}</span>
+      <span className="font-medium text-foreground">{value}</span>
     </div>
   );
 }
@@ -1234,4 +1147,108 @@ function getErrorMessage(error: unknown) {
 }
 
 const inputClassName =
-  "w-full rounded-lg border border-neutral-800 bg-black px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-neutral-700 focus:border-neutral-500";
+  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-border";
+
+function AssessmentPhotos({ photos, editable, busyType, onUpload, onDelete }: { photos: PhysicalAssessmentPhoto[]; editable: boolean; busyType: PhysicalAssessmentPhotoType | null; onUpload: (type: PhysicalAssessmentPhotoType, file: File | null) => Promise<void>; onDelete: (type: PhysicalAssessmentPhotoType) => Promise<void> }) {
+ if (!editable && !photos.length) return <section className="dash-panel"><h2>Fotos</h2><p className="progress-muted mt-3">Nenhuma foto cadastrada nesta avaliação. Use Editar para adicionar o registro visual.</p></section>;
+ return (<div className="assessment-photos dash-panel">
+              <div className="mb-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+                  Fotos de evolução
+                </p>
+
+                <h2 className="mt-2 text-lg font-semibold text-foreground">
+                  Registro visual
+                </h2>
+
+                <p className="mt-1 text-sm text-muted">
+                  As fotos são opcionais e armazenadas de forma privada.
+                </p>
+              </div>
+
+              <div className="photo-grid">
+                {photoTypes.filter(type => editable || photos.some(photo => photo.type === type.type)).map((photoType) => {
+                  const photo = photos.find(item => item.type === photoType.type);
+
+                  const busy = busyType === photoType.type;
+
+                  return (
+                    <div
+                      key={photoType.type}
+                      className="overflow-hidden rounded-[20px] border border-border bg-background"
+                    >
+                      <div className="flex items-center justify-center overflow-hidden bg-card">
+                        {photo ? (
+                          <a
+                            href={photo.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block h-full w-full"
+                          >
+                            <img
+                              src={photo.url}
+                              alt={photoType.label}
+                              className="h-full w-full object-contain"
+                            />
+                          </a>
+                        ) : (
+                          <span className="px-6 text-center text-sm text-muted">
+                            Nenhuma foto
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-3 p-4">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {photoType.label}
+                          </p>
+
+                          {photo && (
+                            <p className="mt-1 text-xs text-muted">
+                              {bytesToSize(photo.sizeBytes)}
+                            </p>
+                          )}
+                        </div>
+
+                        {editable && <div className="flex flex-wrap gap-2">
+                          <label className="inline-flex min-h-11 items-center cursor-pointer rounded-[20px] bg-primary px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-accent">
+                            {busy
+                              ? "Enviando..."
+                              : photo
+                                ? "Substituir"
+                                : "Enviar foto"}
+
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              disabled={busy}
+                              onChange={(event) => {
+                                const file = event.target.files?.[0] ?? null;
+
+                                void onUpload(photoType.type, file);
+
+                                event.target.value = "";
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {photo && (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void onDelete(photoType.type)}
+                              className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:border-red-800 hover:text-red-300"
+                            >
+                              Excluir
+                            </button>
+                          )}
+                        </div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>);
+}

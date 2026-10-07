@@ -116,6 +116,9 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
   const [comparison, setComparison] =
     useState<BodyCompositionComparison | null>(null);
 
+  const [profileRevision, setProfileRevision] = useState(0);
+  const [comparisonKey, setComparisonKey] = useState("");
+  const [comparisonErrorKey, setComparisonErrorKey] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
@@ -208,6 +211,8 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
         if (cancelled) return;
 
         setComparison(loadedComparison);
+        setComparisonKey(`${effectiveFirstId}:${effectiveSecondId}:${profileRevision}`);
+        setError(null);
 
         setFirstAssessment(loadedFirst);
 
@@ -219,6 +224,7 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
       } catch (error) {
         if (cancelled) return;
 
+        setComparisonErrorKey(`${effectiveFirstId}:${effectiveSecondId}:${profileRevision}`);
         setError(getErrorMessage(error));
       }
     }
@@ -228,7 +234,7 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [effectiveFirstId, effectiveSecondId, assessmentSignature]);
+  }, [effectiveFirstId, effectiveSecondId, assessmentSignature, profileRevision]);
 
   async function saveProfile() {
     if (!birthDate) {
@@ -248,6 +254,7 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
       });
 
       setProfile(updated);
+      setProfileRevision(value => value + 1);
 
       const loadedEvolution = await bodyCompositionService.getEvolution();
 
@@ -265,20 +272,21 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
     assessments.length >= 2 &&
     effectiveFirstId !== null &&
     effectiveSecondId !== null &&
-    effectiveFirstId !== effectiveSecondId;
+    effectiveFirstId !== effectiveSecondId &&
+    (assessments.find(a => a.id === effectiveFirstId)?.assessmentDate ?? "") <= (assessments.find(a => a.id === effectiveSecondId)?.assessmentDate ?? "");
 
   return (
     <section className="space-y-6">
-      <header className="border-b border-neutral-800 pb-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+      <header className="border-b border-border pb-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
           Analytics corporal
         </p>
 
-        <h2 className="mt-2 text-2xl font-semibold text-white">
+        <h2 className="mt-2 text-2xl font-semibold text-foreground">
           Comparação & Evolução
         </h2>
 
-        <p className="mt-2 max-w-3xl text-sm text-neutral-400">
+        <p className="mt-2 max-w-3xl text-sm text-muted">
           Compare avaliações, acompanhe medidas, composição corporal e evolução
           visual.
         </p>
@@ -288,12 +296,9 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
 
       {message && <Notice>{message}</Notice>}
 
-      <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-6">
-        <h3 className="text-lg font-semibold text-white">
-          Perfil para composição corporal
-        </h3>
+      <details className="dash-panel"><summary>Configurar perfil para composição corporal</summary>
 
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted">
           Utilizado somente para calcular a estimativa pelo protocolo de dobras.
         </p>
 
@@ -303,6 +308,7 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
 
             <input
               type="date"
+              aria-label="Data de nascimento"
               value={birthDate}
               onChange={(event) => setBirthDate(event.target.value)}
               className={inputClass}
@@ -313,6 +319,7 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
             <Label>Sexo biológico usado pelo protocolo</Label>
 
             <select
+              aria-label="Sexo biológico usado pelo protocolo"
               value={biologicalSex}
               onChange={(event) =>
                 setBiologicalSex(Number(event.target.value) as BiologicalSex)
@@ -330,7 +337,7 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
               type="button"
               disabled={profileSaving}
               onClick={() => void saveProfile()}
-              className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-50"
+              className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-accent disabled:opacity-50"
             >
               {profileSaving ? "Salvando..." : "Salvar perfil"}
             </button>
@@ -338,55 +345,16 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
         </div>
 
         {profile?.birthDate && profile.biologicalSex !== null && (
-          <p className="mt-4 text-xs text-neutral-600">
+          <p className="mt-4 text-xs text-muted">
             Perfil configurado. O percentual de gordura é uma estimativa, não um
             diagnóstico clínico.
           </p>
         )}
-      </div>
+      </details>
 
-      {evolution && evolution.points.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <TrendCard
-            title="Peso"
-            suffix=" kg"
-            points={evolution.points.map((point) => ({
-              date: point.assessmentDate,
-              value: point.weightKg,
-            }))}
-          />
 
-          <TrendCard
-            title="Cintura"
-            suffix=" cm"
-            points={evolution.points.map((point) => ({
-              date: point.assessmentDate,
-              value: point.waistCm,
-            }))}
-          />
-
-          <TrendCard
-            title="Abdômen"
-            suffix=" cm"
-            points={evolution.points.map((point) => ({
-              date: point.assessmentDate,
-              value: point.abdomenCm,
-            }))}
-          />
-
-          <TrendCard
-            title="% de gordura"
-            suffix="%"
-            points={evolution.points.map((point) => ({
-              date: point.assessmentDate,
-              value: point.bodyFatPercentage,
-            }))}
-          />
-        </div>
-      )}
-
-      <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-6">
-        <h3 className="text-lg font-semibold text-white">
+      <div className="rounded-[20px] border border-border bg-card p-4 sm:p-6">
+        <h3 className="text-lg font-semibold text-foreground">
           Comparar avaliações
         </h3>
 
@@ -395,6 +363,7 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
             <Label>Avaliação inicial</Label>
 
             <select
+              aria-label="Avaliação inicial"
               value={effectiveFirstId ?? ""}
               onChange={(event) => setFirstId(Number(event.target.value))}
               className={inputClass}
@@ -415,6 +384,7 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
             <Label>Avaliação final</Label>
 
             <select
+              aria-label="Avaliação final"
               value={effectiveSecondId ?? ""}
               onChange={(event) => setSecondId(Number(event.target.value))}
               className={inputClass}
@@ -430,15 +400,16 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
         </div>
 
         {!canCompare && (
-          <p className="mt-4 text-sm text-neutral-500">
-            Registre pelo menos duas avaliações e selecione datas diferentes.
+          <p className="mt-4 text-sm text-muted">
+            Selecione duas avaliações diferentes, com a inicial anterior à final.
           </p>
         )}
       </div>
 
-      {canCompare && comparison && firstAssessment && secondAssessment && (
+      {canCompare && comparisonKey !== `${effectiveFirstId}:${effectiveSecondId}:${profileRevision}` && <p role="status" className="progress-muted">{comparisonErrorKey === `${effectiveFirstId}:${effectiveSecondId}:${profileRevision}` ? "Comparação indisponível. Selecione as avaliações novamente para tentar." : "Carregando comparação…"}</p>}
+      {canCompare && comparisonKey === `${effectiveFirstId}:${effectiveSecondId}:${profileRevision}` && comparison && firstAssessment && secondAssessment && (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <ComparisonMetric
               label="Peso"
               first={comparison.first.weightKg}
@@ -472,6 +443,7 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
               suffix=" kg"
             />
 
+            <ComparisonMetric label="IMC" first={comparison.first.bmi} second={comparison.second.bmi} difference={comparison.first.bmi !== null && comparison.second.bmi !== null ? comparison.second.bmi - comparison.first.bmi : null} suffix="" />
             <ComparisonMetric
               label="7 dobras"
               first={comparison.first.sevenSkinfoldSumMm}
@@ -513,16 +485,58 @@ export default function PhysicalAssessmentAnalytics({ assessments }: Props) {
             secondPhotos={secondPhotos}
           />
 
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-xs leading-5 text-neutral-500 sm:p-6">
+          <div className="rounded-[20px] border border-border bg-card p-4 text-xs leading-5 text-muted sm:p-6">
             Percentual de gordura calculado somente quando as sete dobras, idade
             e sexo biológico necessários ao protocolo estão disponíveis. Método:{" "}
-            <span className="text-neutral-300">
+            <span className="text-foreground">
               Jackson-Pollock 7 dobras + Siri
             </span>
             .
           </div>
         </>
       )}
+      {evolution && evolution.points.length < 2 && <p className="dash-panel progress-muted">Os gráficos de evolução estarão disponíveis após a segunda avaliação.</p>}
+      {evolution && evolution.points.length > 1 && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <TrendCard
+            title="Peso"
+            suffix=" kg"
+            points={evolution.points.map((point) => ({
+              date: point.assessmentDate,
+              value: point.weightKg,
+            }))}
+          />
+
+          <TrendCard title="Massa magra" suffix=" kg" points={evolution.points.map(point => ({date: point.assessmentDate, value: point.leanMassKg}))} />
+          <TrendCard
+            title="Cintura"
+            suffix=" cm"
+            points={evolution.points.map((point) => ({
+              date: point.assessmentDate,
+              value: point.waistCm,
+            }))}
+          />
+
+          <TrendCard
+            title="Abdômen"
+            suffix=" cm"
+            points={evolution.points.map((point) => ({
+              date: point.assessmentDate,
+              value: point.abdomenCm,
+            }))}
+          />
+
+          <TrendCard
+            title="% de gordura"
+            suffix="%"
+            points={evolution.points.map((point) => ({
+              date: point.assessmentDate,
+              value: point.bodyFatPercentage,
+            }))}
+          />
+        </div>
+      )}
+
     </section>
   );
 }
@@ -543,21 +557,22 @@ function ComparisonMetric({
   valueSuffix?: string;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4">
-      <p className="text-xs text-neutral-500">{label}</p>
+    <div className="rounded-[20px] border border-border bg-card p-4">
+      <p className="text-xs text-muted">{label}</p>
 
-      <p className="mt-2 text-lg font-semibold text-white">
+      <p className="mt-2 text-lg font-semibold text-foreground">
         {formatValue(first, valueSuffix ?? suffix)}
-        <span className="mx-2 text-neutral-700">→</span>
+        <span className="mx-2 text-muted">→</span>
         {formatValue(second, valueSuffix ?? suffix)}
       </p>
 
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="mt-2 text-xs text-muted">
         Diferença:{" "}
-        <span className="font-medium text-neutral-200">
+        <span className="font-medium text-foreground">
           {formatDelta(difference, suffix)}
         </span>
       </p>
+      {first !== null && first !== 0 && difference !== null && <p className="mt-2 progress-muted">Variação relativa: {formatDelta(difference / Math.abs(first) * 100, "%")}</p>}
     </div>
   );
 }
@@ -575,54 +590,10 @@ function ComparisonTable({
     second: number | null;
   }[];
 }) {
-  return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-6">
-      <h3 className="text-lg font-semibold text-white">{title}</h3>
-
-      <div className="mt-5 overflow-x-auto">
-        <table className="w-full min-w-[580px] text-sm">
-          <thead>
-            <tr className="border-b border-neutral-800 text-left text-xs uppercase tracking-wide text-neutral-600">
-              <th className="pb-3">Medida</th>
-
-              <th className="pb-3">Inicial</th>
-
-              <th className="pb-3">Final</th>
-
-              <th className="pb-3 text-right">Diferença</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {rows.map((row) => {
-              const difference =
-                row.first !== null && row.second !== null
-                  ? row.second - row.first
-                  : null;
-
-              return (
-                <tr key={row.label} className="border-b border-neutral-900">
-                  <td className="py-3 text-neutral-400">{row.label}</td>
-
-                  <td className="py-3 text-neutral-200">
-                    {formatValue(row.first, ` ${unit}`)}
-                  </td>
-
-                  <td className="py-3 text-neutral-200">
-                    {formatValue(row.second, ` ${unit}`)}
-                  </td>
-
-                  <td className="py-3 text-right font-medium text-white">
-                    {formatDelta(difference, ` ${unit}`)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  const visible = rows.filter(row => row.first !== null || row.second !== null);
+  return <details className="dash-panel" open={title === "Circunferências"}><summary>{title}</summary>
+    {!visible.length ? <p className="progress-muted">Sem medidas registradas.</p> : <div className="progress-grid mt-4">{visible.map(row => <ComparisonMetric key={row.label} label={row.label} first={row.first} second={row.second} difference={row.first !== null && row.second !== null ? row.second-row.first : null} suffix={` ${unit}`} />)}</div>}
+  </details>;
 }
 
 function PhotoComparison({
@@ -637,9 +608,10 @@ function PhotoComparison({
   secondPhotos: PhysicalAssessmentPhoto[];
 }) {
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-6">
-      <h3 className="text-lg font-semibold text-white">Comparação visual</h3>
+    <div className="rounded-[20px] border border-border bg-card p-4 sm:p-6">
+      <h3 className="text-lg font-semibold text-foreground">Comparação visual</h3>
 
+      {!firstPhotos.length && !secondPhotos.length && <p className="progress-muted mt-4">Nenhuma foto nas avaliações selecionadas.</p>}
       <div className="mt-5 space-y-6">
         {photoTypes.map((photoType) => {
           const first = firstPhotos.find(
@@ -650,18 +622,19 @@ function PhotoComparison({
             (photo) => photo.type === photoType.type,
           );
 
+          if (!first && !second) return null;
           return (
-            <div key={photoType.type}>
-              <p className="mb-3 text-sm font-medium text-neutral-300">
+            <details key={photoType.type} open={photoType.type === 0}>
+              <summary className="mb-3 text-sm font-medium text-foreground">
                 {photoType.label}
-              </p>
+              </summary>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <PhotoBox label={formatDate(firstDate)} photo={first} />
 
                 <PhotoBox label={formatDate(secondDate)} photo={second} />
               </div>
-            </div>
+            </details>
           );
         })}
       </div>
@@ -677,7 +650,7 @@ function PhotoBox({
   photo: PhysicalAssessmentPhoto | undefined;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-neutral-800 bg-black">
+    <div className="overflow-hidden rounded-lg border border-border bg-background">
       <div className="flex aspect-[3/4] items-center justify-center overflow-hidden">
         {photo ? (
           <a
@@ -689,15 +662,15 @@ function PhotoBox({
             <img
               src={photo.url}
               alt={label}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           </a>
         ) : (
-          <span className="text-sm text-neutral-700">Sem foto</span>
+          <span className="text-sm text-muted">Sem foto</span>
         )}
       </div>
 
-      <div className="border-t border-neutral-800 px-3 py-2 text-xs text-neutral-500">
+      <div className="border-t border-border px-3 py-2 text-xs text-muted">
         {label}
       </div>
     </div>
@@ -716,7 +689,7 @@ function TrendCard({
     value: number | null;
   }[];
 }) {
-  const valid = points.filter(
+  const valid = [...points].sort((a,b) => a.date.localeCompare(b.date)).filter(
     (
       point,
     ): point is {
@@ -726,19 +699,19 @@ function TrendCard({
   );
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 sm:p-5">
-      <h3 className="text-sm font-semibold text-white">{title}</h3>
+    <div className="rounded-[20px] border border-border bg-card p-4 sm:p-5">
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
 
       {valid.length < 2 ? (
-        <p className="mt-6 text-sm text-neutral-600">Dados insuficientes.</p>
+        <p className="mt-6 text-sm text-muted">Dados insuficientes.</p>
       ) : (
         <>
           <MiniLineChart points={valid} />
 
-          <div className="mt-3 flex justify-between text-xs text-neutral-600">
+          <div className="mt-3 flex justify-between text-xs text-muted">
             <span>{formatDate(valid[0].date)}</span>
 
-            <span className="font-medium text-neutral-300">
+            <span className="font-medium text-foreground">
               {formatValue(valid[valid.length - 1].value, suffix)}
             </span>
 
@@ -796,8 +769,9 @@ function MiniLineChart({
   return (
     <svg
       viewBox={`0 0 ${width} ${height}`}
-      className="mt-4 h-40 w-full text-white"
-      preserveAspectRatio="none"
+      className="mt-4 h-40 w-full text-foreground"
+      role="img"
+      aria-label="Evolução dos valores nas datas registradas"
     >
       <polyline
         points={polyline}
@@ -814,7 +788,7 @@ function MiniLineChart({
           cy={point.y}
           r="4"
           fill="currentColor"
-        />
+        ><title>{formatDate(points[index].date)}: {formatValue(point.value)}</title></circle>
       ))}
     </svg>
   );
@@ -822,7 +796,7 @@ function MiniLineChart({
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <label className="mb-1.5 block text-xs font-medium text-neutral-400">
+    <label className="mb-1.5 block text-xs font-medium text-muted">
       {children}
     </label>
   );
@@ -830,7 +804,7 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-3 text-sm text-neutral-300">
+    <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground">
       {children}
     </div>
   );
@@ -867,4 +841,4 @@ function getErrorMessage(error: unknown) {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-neutral-800 bg-black px-3 py-2.5 text-sm text-white outline-none transition focus:border-neutral-500";
+  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-border";
