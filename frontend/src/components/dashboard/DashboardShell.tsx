@@ -5,7 +5,7 @@ import '../AuthLayout.css'
 import './DashboardOverview.css'
 const asset = (name: string) => `/dashboard/${name}`
 const links = [{ href: '#/semana', label: 'Minha semana' }, { href: '#/peso', label: 'Peso corporal' }, { href: '#/avaliacao', label: 'Avaliação física' }, { href: '#/historico', label: 'Histórico de treinos' }]
-interface Props { children: ReactNode; title: string; subtitle: string; displayName?: string; current: 'dashboard' | 'strength' | 'running'; loading: boolean; refresh: () => void; className?: string }
+interface Props { children: ReactNode; title: string; subtitle: string; displayName?: string; current: 'dashboard' | 'strength' | 'running' | 'account'; loading: boolean; refresh: () => void; className?: string }
 export default function DashboardShell({ children, title, subtitle, displayName, current, loading, refresh, className = '' }: Props) {
  const account = useRef<HTMLDialogElement>(null)
  return <div className={`overview-page ${className}`}><div className="overview-container">

@@ -7,6 +7,9 @@
   --color-border: var(--border);
   --color-muted: var(--muted);
   --color-control: var(--control);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
   --color-action-hover: var(--action-hover);
   --font-sans: 'Segoe UI', Arial, sans-serif;
 }

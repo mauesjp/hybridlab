@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 
-import { clearSession } from "../services/api";
+import HistoryView from "../components/dashboard/HistoryView";
+import "../components/dashboard/ProgressViews.css";
 import { dashboardService as service } from "../services/dashboardService";
 import { useRemote } from "../hooks/useRemote";
 
@@ -17,14 +18,11 @@ import PlanView from "../components/dashboard/PlanView";
 import SessionView from "../components/dashboard/SessionView";
 
 import {
-  Badge,
-  Empty,
   ErrorNotice,
   Loading,
-  Panel,
 } from "../components/dashboard/UI";
 
-import { dateTime, sessionStatusLabel } from "../components/dashboard/format";
+
 
 import BodyWeightView from "../components/dashboard/BodyWeightView";
 import DashboardOverview from "../components/dashboard/DashboardOverview";
@@ -38,63 +36,6 @@ interface LoadedDashboard {
   active: ActiveSession | null;
   weightEntries: BodyWeightEntry[];
   goalWeight: number | null;
-}
-
-function History({
-  data,
-  compact = false,
-}: {
-  data: DashboardData;
-  compact?: boolean;
-}) {
-  const sessions = compact
-    ? data.recentSessions.slice(0, 4)
-    : data.recentSessions;
-
-  return (
-    <Panel
-      title={compact ? "Últimos treinos" : "Histórico de treinos"}
-      action={
-        compact ? (
-          <a className="auth-link text-sm" href="#/historico">
-            Ver histórico
-          </a>
-        ) : undefined
-      }
-    >
-      {!compact && (
-        <p className="mb-5 text-sm text-muted">
-          Suas 20 sessões mais recentes, com os registros de cada série.
-        </p>
-      )}
-
-      {!sessions.length ? (
-        <Empty>
-          Seus treinos aparecerão aqui quando você iniciar a primeira sessão.
-        </Empty>
-      ) : (
-        <div className="divide-y divide-border">
-          {sessions.map((session) => (
-            <a
-              key={session.id}
-              href={`#/treino/${session.id}`}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg py-4 hover:bg-control"
-            >
-              <div>
-                <p className="font-medium">{session.dayName}</p>
-
-                <p className="mt-1 text-sm text-muted">
-                  {dateTime(session.startedAt)}
-                </p>
-              </div>
-
-              <Badge>{sessionStatusLabel(session.status)} →</Badge>
-            </a>
-          ))}
-        </div>
-      )}
-    </Panel>
-  );
 }
 
 export default function DashboardPage({ route }: { route: string }) {
@@ -167,11 +108,11 @@ export default function DashboardPage({ route }: { route: string }) {
 
   const sessionMatch = /^#\/treino\/(\d+)$/.exec(route);
 
-  const currentNav = planMatch || sessionMatch ? "#/musculacao" : route;
+  const moduleRoute = route.split("/")[1];
 
   if (route === "#/corrida" || route.startsWith("#/corrida/")) return <RunningPage key={route} route={route} />;
 
-  const isOverview = !planMatch && !sessionMatch && !nav.slice(1).some(item => item.href === route);
+  const isOverview = !planMatch && !sessionMatch && !nav.slice(1).some(item => item.href.split("/")[1] === moduleRoute);
   if (isOverview) {
     return <DashboardOverview data={data?.dashboard ?? null} active={data?.active ?? null} weightEntries={data?.weightEntries ?? []} goalWeight={data?.goalWeight ?? null} loading={remote.loading} error={remote.error} reload={remote.reload} />;
   }
@@ -200,17 +141,17 @@ export default function DashboardPage({ route }: { route: string }) {
         onChanged={remote.reload}
       />
     );
-  } else if (route === "#/semana") {
-    content = <HybridWeekPage />;
+  } else if (moduleRoute === "semana") {
+    content = <HybridWeekPage key={route} route={route} dashboard={data.dashboard} />;
   } else if (route === "#/musculacao") {
     content = <PlansList data={data.dashboard} onChanged={remote.reload} />;
 
   } else if (route === "#/historico") {
-    content = <History data={data.dashboard} />;
+    content = <HistoryView data={data.dashboard} />;
   } else if (route === "#/peso") {
     content = <BodyWeightView />;
-  } else if (route === "#/avaliacao") {
-    content = <PhysicalAssessmentPage />;
+  } else if (moduleRoute === "avaliacao") {
+    content = <PhysicalAssessmentPage key={route} route={route} />;
   } else {
     content = null;
   }
@@ -222,98 +163,10 @@ export default function DashboardPage({ route }: { route: string }) {
     </DashboardShell>;
   }
 
-  return (
-    <div className="min-h-[calc(100svh-4rem)] lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="border-b border-border bg-surface p-4 lg:border-r lg:border-b-0 lg:p-6">
-        <a
-          href="#/dashboard"
-          aria-label="HybridLab — dashboard"
-          className="mx-auto hidden w-fit lg:block"
-        >
-          <img
-            className="brand-logo h-28 w-28 object-contain"
-            src="/hybridlab-logo.png"
-            alt="HybridLab"
-            width="112"
-            height="112"
-          />
-        </a>
-
-        <p className="my-6 hidden text-center text-xs tracking-[0.16em] text-muted uppercase lg:block">
-          Seu espaço
-        </p>
-
-        <nav
-          aria-label="Navegação principal"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-7 lg:grid-cols-1"
-        >
-          {nav.map(({ href, label, number }) => (
-            <a
-              key={href}
-              href={href}
-              aria-current={
-                currentNav === href ||
-                (href === "#/dashboard" &&
-                  ["", "#/login", "#/registro"].includes(route))
-                  ? "page"
-                  : undefined
-              }
-              className="dash-nav"
-            >
-              <span className="hidden text-xs opacity-50 lg:inline">
-                {number}
-              </span>
-
-              {label}
-            </a>
-          ))}
-        </nav>
-
-        <div className="mt-5 flex items-center justify-between gap-2 border-t border-border pt-4 lg:mt-12 lg:flex-col lg:items-start">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">
-              {data?.dashboard.profile.displayName ?? "Sua conta"}
-            </p>
-
-            <p className="mt-1 text-xs text-muted">
-              {data ? "Conta pessoal" : "Conectando…"}
-            </p>
-          </div>
-
-          <button
-            className="dash-secondary lg:mt-4"
-            onClick={() => {
-              clearSession();
-
-              window.location.hash = "/login";
-            }}
-          >
-            Sair
-          </button>
-        </div>
-      </aside>
-
-      <main className="min-w-0 px-5 py-7 sm:p-8 xl:p-12">
-        <div className="mx-auto max-w-6xl">
-          {data && (
-            <div className="mb-5 flex justify-end">
-              <button
-                disabled={remote.loading}
-                className="text-xs text-muted underline underline-offset-4"
-                onClick={remote.reload}
-              >
-                {remote.loading ? "Atualizando…" : "Atualizar dados"}
-              </button>
-            </div>
-          )}
-
-          {data && remote.error && (
-            <ErrorNotice message={remote.error} retry={remote.reload} />
-          )}
-
-          {content}
-        </div>
-      </main>
-    </div>
-  );
+  const title = moduleRoute === "semana" ? "Minha Semana" : moduleRoute === "peso" ? "Peso corporal" : moduleRoute === "avaliacao" ? "Avaliação Física" : "Histórico de treinos";
+  return <DashboardShell title={title} subtitle="Seu progresso, um passo de cada vez." displayName={data?.dashboard.profile.displayName} current="account" loading={remote.loading} refresh={remote.reload} className="training-page progress-page">
+    <nav className="progress-nav" aria-label="Acompanhamento">{nav.filter(item => ["#/semana", "#/peso", "#/avaliacao", "#/historico"].includes(item.href)).map(item => <a key={item.href} href={item.href} aria-current={item.href.split("/")[1] === moduleRoute ? "page" : undefined}>{item.label}</a>)}</nav>
+    {data && remote.error && <ErrorNotice message={remote.error} retry={remote.reload} />}
+    {content}
+  </DashboardShell>;
 }
